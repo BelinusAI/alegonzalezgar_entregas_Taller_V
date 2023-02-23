@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8"?>
+<circuit>
+  <version>2</version>
+  <attributes/>
+  <visualElements>
+    <visualElement>
+      <elementName>NOr</elementName>
+      <elementAttributes/>
+      <pos x="1220" y="400"/>
+    </visualElement>
+    <visualElement>
+      <elementName>NOr</elementName>
+      <elementAttributes/>
+      <pos x="1220" y="520"/>
+    </visualElement>
+    <visualElement>
+      <elementName>In</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Description</string>
+          <string>Set input
+{{de Set Eingang}}</string>
+        </entry>
+        <entry>
+          <string>Label</string>
+          <string>R</string>
+        </entry>
+      </elementAttributes>
+      <pos x="1000" y="580"/>
+    </visualElement>
+    <visualElement>
+      <elementName>In</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Description</string>
+          <string>gate input
+{{de Freigabeeingang}}</string>
+        </entry>
+        <entry>
+          <string>Label</string>
+          <string>C</string>
+        </entry>
+      </elementAttributes>
+      <pos x="1000" y="480"/>
+    </visualElement>
+    <visualElement>
+      <elementName>And</elementName>
+      <elementAttributes/>
+      <pos x="1120" y="380"/>
+    </visualElement>
+    <visualElement>
+      <elementName>And</elementName>
+      <elementAttributes/>
+      <pos x="1120" y="540"/>
+    </visualElement>
+    <visualElement>
+      <elementName>In</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Description</string>
+          <string>Reset input
+{{de Reset Eingang}}</string>
+        </entry>
+        <entry>
+          <string>Label</string>
+          <string>S</string>
+        </entry>
+      </elementAttributes>
+      <pos x="1000" y="380"/>
+    </visualElement>
+    <visualElement>
+      <elementName>NOr</elementName>
+      <elementAttributes/>
+      <pos x="1560" y="400"/>
+    </visualElement>
+    <visualElement>
+      <elementName>NOr</elementName>
+      <elementAttributes/>
+      <pos x="1560" y="520"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Out</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Description</string>
+          <string>The stored bit.
+{{de Das gespeicherte Bit}}</string>
+        </entry>
+        <entry>
+          <string>Label</string>
+          <string>Q</string>
+        </entry>
+      </elementAttributes>
+      <pos x="1680" y="420"/>
+    </visualElement>
+    <visualElement>
+      <elementName>And</elementName>
+      <elementAttributes/>
+      <pos x="1460" y="380"/>
+    </visualElement>
+    <visualElement>
+      <elementName>And</elementName>
+      <elementAttributes/>
+      <pos x="1460" y="540"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Not</elementName>
+      <elementAttributes/>
+      <pos x="1140" y="480"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Text</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Description</string>
+          <string>Maestro-esclavo es una combinación de dos latchs conectados
+en serie, donde uno actúa como maestro y otro como esclavo
+Cada flip-flop está conectado a un pulso de reloj complementario entre sí
+
+Sólo cuando la señal de reloj cambia de 1 a 0 puede la salida 
+afectarse de acuerdo con los valores de la entrada S y R
+Si tanto S como R son 0 durante la transición 
+de reloj, la salida no cambia
+Cuando tanto S como R son iguales a 1, la salida es impredecible
+y puede ser 0 o 1 dependiendo de los retrasos internos de
+tiempo que ocurran dentro del circuito.</string>
+        </entry>
+      </elementAttributes>
+      <pos x="940" y="660"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Text</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Description</string>
+          <string>Master</string>
+        </entry>
+      </elementAttributes>
+      <pos x="1140" y="320"/>
+    </visualElement>
+    <visualElement>
+      <elementName>Text</elementName>
+      <elementAttributes>
+        <entry>
+          <string>Description</string>
+          <string>Slave</string>
+        </entry>
+      </elementAttributes>
+      <pos x="1500" y="320"/>
+    </visualElement>
+  </visualElements>
+  <wires>
+    <wire>
+      <p1 x="1200" y="500"/>
+      <p2 x="1320" y="460"/>
+    </wire>
+    <wire>
+      <p1 x="1320" y="500"/>
+      <p2 x="1200" y="460"/>
+    </wire>
+    <wire>
+      <p1 x="1540" y="500"/>
+      <p2 x="1660" y="460"/>
+    </wire>
+    <wire>
+      <p1 x="1660" y="500"/>
+      <p2 x="1540" y="460"/>
+    </wire>
+    <wire>
+      <p1 x="1180" y="480"/>
+      <p2 x="1440" y="480"/>
+    </wire>
+    <wire>
+      <p1 x="1000" y="480"/>
+      <p2 x="1100" y="480"/>
+    </wire>
+    <wire>
+      <p1 x="1100" y="480"/>
+      <p2 x="1140" y="480"/>
+    </wire>
+    <wire>
+      <p1 x="1180" y="400"/>
+      <p2 x="1220" y="400"/>
+    </wire>
+    <wire>
+      <p1 x="1520" y="400"/>
+      <p2 x="1560" y="400"/>
+    </wire>
+    <wire>
+      <p1 x="1180" y="560"/>
+      <p2 x="1220" y="560"/>
+    </wire>
+    <wire>
+      <p1 x="1520" y="560"/>
+      <p2 x="1560" y="560"/>
+    </wire>
+    <wire>
+      <p1 x="1320" y="580"/>
+      <p2 x="1460" y="580"/>
+    </wire>
+    <wire>
+      <p1 x="1000" y="580"/>
+      <p2 x="1120" y="580"/>
+    </wire>
+    <wire>
+      <p1 x="1300" y="420"/>
+      <p2 x="1320" y="420"/>
+    </wire>
+    <wire>
+      <p1 x="1100" y="420"/>
+      <p2 x="1120" y="420"/>
+    </wire>
+    <wire>
+      <p1 x="1640" y="420"/>
+      <p2 x="1660" y="420"/>
+    </wire>
+    <wire>
+      <p1 x="1440" y="420"/>
+      <p2 x="1460" y="420"/>
+    </wire>
+    <wire>
+      <p1 x="1660" y="420"/>
+      <p2 x="1680" y="420"/>
+    </wire>
+    <wire>
+      <p1 x="1320" y="420"/>
+      <p2 x="1360" y="420"/>
+    </wire>
+    <wire>
+      <p1 x="1200" y="520"/>
+      <p2 x="1220" y="520"/>
+    </wire>
+    <wire>
+      <p1 x="1540" y="520"/>
+      <p2 x="1560" y="520"/>
+    </wire>
+    <wire>
+      <p1 x="1200" y="440"/>
+      <p2 x="1220" y="440"/>
+    </wire>
+    <wire>
+      <p1 x="1540" y="440"/>
+      <p2 x="1560" y="440"/>
+    </wire>
+    <wire>
+      <p1 x="1360" y="380"/>
+      <p2 x="1460" y="380"/>
+    </wire>
+    <wire>
+      <p1 x="1000" y="380"/>
+      <p2 x="1120" y="380"/>
+    </wire>
+    <wire>
+      <p1 x="1300" y="540"/>
+      <p2 x="1320" y="540"/>
+    </wire>
+    <wire>
+      <p1 x="1100" y="540"/>
+      <p2 x="1120" y="540"/>
+    </wire>
+    <wire>
+      <p1 x="1640" y="540"/>
+      <p2 x="1660" y="540"/>
+    </wire>
+    <wire>
+      <p1 x="1440" y="540"/>
+      <p2 x="1460" y="540"/>
+    </wire>
+    <wire>
+      <p1 x="1440" y="420"/>
+      <p2 x="1440" y="480"/>
+    </wire>
+    <wire>
+      <p1 x="1440" y="480"/>
+      <p2 x="1440" y="540"/>
+    </wire>
+    <wire>
+      <p1 x="1200" y="500"/>
+      <p2 x="1200" y="520"/>
+    </wire>
+    <wire>
+      <p1 x="1200" y="440"/>
+      <p2 x="1200" y="460"/>
+    </wire>
+    <wire>
+      <p1 x="1360" y="380"/>
+      <p2 x="1360" y="420"/>
+    </wire>
+    <wire>
+      <p1 x="1540" y="500"/>
+      <p2 x="1540" y="520"/>
+    </wire>
+    <wire>
+      <p1 x="1540" y="440"/>
+      <p2 x="1540" y="460"/>
+    </wire>
+    <wire>
+      <p1 x="1320" y="420"/>
+      <p2 x="1320" y="460"/>
+    </wire>
+    <wire>
+      <p1 x="1320" y="500"/>
+      <p2 x="1320" y="540"/>
+    </wire>
+    <wire>
+      <p1 x="1320" y="540"/>
+      <p2 x="1320" y="580"/>
+    </wire>
+    <wire>
+      <p1 x="1100" y="420"/>
+      <p2 x="1100" y="480"/>
+    </wire>
+    <wire>
+      <p1 x="1100" y="480"/>
+      <p2 x="1100" y="540"/>
+    </wire>
+    <wire>
+      <p1 x="1660" y="420"/>
+      <p2 x="1660" y="460"/>
+    </wire>
+    <wire>
+      <p1 x="1660" y="500"/>
+      <p2 x="1660" y="540"/>
+    </wire>
+  </wires>
+  <measurementOrdering/>
+</circuit>
