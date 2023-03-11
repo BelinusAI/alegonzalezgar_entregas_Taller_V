@@ -10,9 +10,15 @@
 
 #include <stdint.h>
 
+/**
+ * Función principal del programa
+*/
+int main(void){
 
-int main(void)
-{
     /* Loop forever */
-	for(;;);
+	while(1){
+
+	}
+
+	return 0;
 }
