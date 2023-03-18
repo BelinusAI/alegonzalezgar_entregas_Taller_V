@@ -151,7 +151,9 @@ int main(void){
 		GPIO_WritePin(&handlerUserLedPinPC6, ((1 << 5) & counter) >> 5);	//bit-5
 		GPIO_WritePin(&handlerUserLedPinPC9, ((1 << 6) & counter) >> 6);	//bit-6
 
-		for(uint32_t i = 0; i < 1350000; i++){}; //Delay Aprox 1 seg total
+		for(uint32_t i = 0; i < 1250000; i++){
+			NOP();
+		}; //Delay Aprox 1 seg total
 
 		if(GPIO_ReadPin(&handlerUserLedPinPC13)){ //USER NO presionado
 			//LED2 encendido para indicar que USER No está presionado
