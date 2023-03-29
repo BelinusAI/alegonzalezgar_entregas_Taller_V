@@ -8,18 +8,29 @@
  ******************************************************************************
  */
 #include <stm32f4xx.h>
-
 #include <stdint.h>
+#include "GPIOxDriver.h"
+#include "BasicTimer.h"
 
-/**
- * Función principal del programa
-*/
+//Definición de elementos
+
+
+//Prototipos de funciones
+void init_Hadware(void);
+
+
 int main(void){
+	init_Hadware();
 
-    /* Loop forever */
 	while(1){
 
 	}
 
 	return 0;
+
 }
+
+void init_Hadware(void){
+
+}
+
