@@ -20,7 +20,7 @@ GPIO_Handler_t handlerUserB= {0};
 BasicTimer_Handler_t handlerBlinkyTimer = {0};
 EXTI_Config_t extiConfigPC13 = {0};
 
-uint32_t counter_Exti13 = 0;
+uint32_t counter_EXTI13;
 
 //Prototipos de funciones
 void init_Hadware(void);
@@ -73,7 +73,7 @@ void init_Hadware(void){
 }
 
 void callback_extInt13(void){
-	counter_Exti13++;
+	counter_EXTI13++;
 	GPIO_WritePin(&handlerLed2, RESET);
 }
 
