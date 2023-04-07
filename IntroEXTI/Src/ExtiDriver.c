@@ -845,7 +845,7 @@ void EXTI15_10_IRQHandler(void){
 	}
 	else if(EXTI->PR & EXTI_PR_PR13){
 		// Bajamos la bandera correspondiente
-		EXTI->PR |= EXTI_PR_PR13;
+		EXTI->PR |= EXTI_PR_PR13_Msk;
 
 		// llamamos al callback
 		callback_extInt13();

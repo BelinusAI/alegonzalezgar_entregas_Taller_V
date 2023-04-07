@@ -559,20 +559,22 @@ void extInt_Config(EXTI_Config_t *extiConfig){
 	if(extiConfig->edgeType == EXTERNAL_INTERRUPT_FALLING_EDGE){
 		/* Falling Trigger selection register*/
 		//Desactivar flanco de subida
-		EXTI->RTSR &= RESET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber;
+		EXTI->RTSR &= ~(SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
 
 		//Activar flanco de bajada
-		EXTI->FTSR &= RESET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber;
+		EXTI->FTSR &= ~(SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
 		EXTI->FTSR |= SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber;
+
 	}
 	else{
         /*Rising trigger selection register*/
 		//Desactivar flanco de bajada
-		EXTI->FTSR &= RESET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber;
+		EXTI->FTSR &= ~(SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
 
 		//Activar flanco de subida
-		EXTI->RTSR &= RESET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber;
+		EXTI->RTSR &= ~(SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
 		EXTI->RTSR |= SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber;
+
 
 	}
 
@@ -581,8 +583,10 @@ void extInt_Config(EXTI_Config_t *extiConfig){
 
 	/* 6.0 Activamos la interrupción del canal que estamos configurando */
 	// Interrupt Mask register
-	EXTI->IMR &=  RESET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber;;
-	EXTI->IMR |= SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber;;
+	EXTI->IMR &=  ~(SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
+	EXTI->IMR |= SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber;
+
+
 
 	/* 6.1 Matriculamos la interrupción en el NVIC para el canal correspondiente,
 	 * donde el canal 0 corresponde al EXTI_0, canal 1 al EXTI_1, etc.
