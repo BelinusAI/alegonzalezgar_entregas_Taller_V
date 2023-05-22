@@ -13,7 +13,7 @@
 #include "BasicTimer.h"
 #include "ExtiDriver.h"
 #include "USARTxDriver.h"
-
+#include <math.h>
 
 
 /*Definición de elementos*/
@@ -34,19 +34,11 @@ uint8_t usart2DataReceived = 0;
 char mensaje[] = "Mundo \n";
 char buffer[64] = {0};
 
-float valueA = 13.657f;
-float valueB = 345.65f;
-float valueC = 0.0f;
-
-
 //Prototipos de funciones
 void init_Hadware(void);
 
 
 int main(void){
-	/*Activamos el coprocesador matemático FPU */
-	SCB->CPACR |= (0xF <<20);
-
 	init_Hadware();
 
 	while(1){
@@ -70,16 +62,17 @@ int main(void){
 
 		if(usart2DataReceived != '\0'){
 			//writeChar(&usart2Handler, usart2DataReceived);
-			//sprintf(buffer, "Recibido = %c \n", usart2DataReceived);
-
-			valueC = valueA * valueB;
-			sprintf(buffer, "ValueC = %f \n", valueC);
+			sprintf(buffer, "Recibido = %c \n", usart2DataReceived);
 			writeMsg(&usart2Handler, buffer);
 			usart2DataReceived = '\0';
 		}
+
+
+
 	}
 
 	return 0;
+
 }
 
 void init_Hadware(void){
@@ -136,6 +129,8 @@ void init_Hadware(void){
 	usart2Handler.USART_Config.USART_EnableIntTX	= USART_TX_INTERRUP_DISABLE;
 	USART_Config(&usart2Handler);
 
+
+
 }
 
 void usart2Rx_Callback(void){
@@ -153,6 +148,8 @@ void BasicTimer2_Callback(void){
 	GPIOxTooglePin(&handlerUserBlinkyPin);
 	printMsg++;
 }
+
+
 
 
 

@@ -108,11 +108,11 @@ void BasicTimer_Config(BasicTimer_Handler_t *ptrBTimerHandler){
 	}
 	else if(ptrBTimerHandler->ptrTIMx == TIM4){
 			// Activando en NVIC para la interrupción del TIM4
-			NVIC_EnableIRQ(TIM4_IRQn);
+		NVIC_EnableIRQ(TIM4_IRQn);
 	}
 	else if(ptrBTimerHandler->ptrTIMx == TIM4){
 				// Activando en NVIC para la interrupción del TIM5
-				NVIC_EnableIRQ(TIM5_IRQn);
+		NVIC_EnableIRQ(TIM5_IRQn);
 	}
 	else{
 		__NOP();

@@ -20,6 +20,7 @@ GPIO_Handler_t handlerUserB= {0};
 BasicTimer_Handler_t handlerBlinkyTimer = {0};
 EXTI_Config_t extiConfigPC13 = {0};
 
+
 uint32_t counter_EXTI13;
 
 //Prototipos de funciones
@@ -30,6 +31,7 @@ int main(void){
 	init_Hadware();
 
 	while(1){
+
 
 	}
 
