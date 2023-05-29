@@ -28,6 +28,8 @@ EXTI_Config_t handlerUserButtomExti = {0};
 
 BasicTimer_Handler_t handlerBlinkyTimer2 = {0}; //Led de estado
 
+
+
 //Definición USART
 GPIO_Handler_t handlerPinTx = {0};
 GPIO_Handler_t handlerPinRx = {0};
@@ -160,6 +162,14 @@ void init_Hadware(void){
 	startPwmSignal(&handlerSignalPWM);
 
 
+	//Configurar TIM3 Muestreo
+	BasicTimer_Handler_t handlerSampleTimer3 = {0};
+	handlerSampleTimer3.ptrTIMx 							= TIM3;
+	handlerSampleTimer3.TIMx_Config.TIMx_mode 				= BTIMER_MODE_UP;
+	handlerSampleTimer3.TIMx_Config.TIMx_speed 				= BTIMER_SPEED_1ms;
+	handlerSampleTimer3.TIMx_Config.TIMx_period 			= 1; //Interrupción cada 2500 ms
+	handlerSampleTimer3.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUP_ENABLE;
+	BasicTimer_Config(&handlerSampleTimer3);
 
 
 }
@@ -179,6 +189,8 @@ void BasicTimer2_Callback(void){
 	GPIOxTooglePin(&handlerUserBlinkyPin);
 	printMsg++;
 }
+
+
 
 
 

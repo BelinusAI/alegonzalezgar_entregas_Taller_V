@@ -86,9 +86,6 @@ int main(void){
 		}
 
 		if(usart2DataReceived != '\0'){
-			//writeChar(&usart2Handler, usart2DataReceived);
-			//sprintf(buffer, "Recibido = %c \n", usart2DataReceived);
-
 			valueC = valueA * valueB;
 			sprintf(buffer, "ValueC = %f \n", valueC);
 			writeMsg(&usart2Handler, buffer);

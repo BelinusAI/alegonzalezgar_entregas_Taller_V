@@ -107,8 +107,8 @@ void BasicTimer_Config(BasicTimer_Handler_t *ptrBTimerHandler){
 		NVIC_EnableIRQ(TIM3_IRQn);
 	}
 	else if(ptrBTimerHandler->ptrTIMx == TIM4){
-			// Activando en NVIC para la interrupción del TIM4
-			NVIC_EnableIRQ(TIM4_IRQn);
+		// Activando en NVIC para la interrupción del TIM4
+		NVIC_EnableIRQ(TIM4_IRQn);
 	}
 	else if(ptrBTimerHandler->ptrTIMx == TIM4){
 				// Activando en NVIC para la interrupción del TIM5
@@ -165,7 +165,7 @@ void TIM2_IRQHandler(void){
 
 void TIM3_IRQHandler(void){
 	/* Limpiamos la bandera que indica que la interrupción se ha generado */
-	ptrTimerUsed->SR &= ~TIM_SR_UIF;
+	TIM3->SR &= ~TIM_SR_UIF;
 
 	/* LLamamos a la función que se debe encargar de hacer algo con esta interrupción*/
 	BasicTimer3_Callback();
@@ -173,7 +173,7 @@ void TIM3_IRQHandler(void){
 
 void TIM4_IRQHandler(void){
 	/* Limpiamos la bandera que indica que la interrupción se ha generado */
-	ptrTimerUsed->SR &= ~TIM_SR_UIF;
+	TIM4->SR &= ~TIM_SR_UIF;
 
 	/* LLamamos a la función que se debe encargar de hacer algo con esta interrupción*/
 	BasicTimer4_Callback();
@@ -181,7 +181,7 @@ void TIM4_IRQHandler(void){
 
 void TIM5_IRQHandler(void){
 	/* Limpiamos la bandera que indica que la interrupción se ha generado */
-	ptrTimerUsed->SR &= ~TIM_SR_UIF;
+	TIM5->SR &= ~TIM_SR_UIF;
 
 	/* LLamamos a la función que se debe encargar de hacer algo con esta interrupción*/
 	BasicTimer5_Callback();

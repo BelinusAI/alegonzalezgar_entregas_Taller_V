@@ -57,6 +57,7 @@ int main(void){
 			sprintf(buffer, "Valor de PI= %f \n", M_PI);
 			writeMsg(&usart2Handler, buffer);
 			*/
+			writeChar(&usart2Handler, 'L');
 			printMsg = 0;
 		}
 

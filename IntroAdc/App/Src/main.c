@@ -131,7 +131,7 @@ void init_Hadware(void){
 	handlerPinRx.GPIO_PinConfig.PinAltFunMode	= AF7;
 	GPIO_Config(&handlerPinRx);
 
-	usart2Handler.ptrUSARTx 						= USART1;
+	usart2Handler.ptrUSARTx 						= USART2;
 	usart2Handler.USART_Config.USART_baudrate		= USART_BAUDRATE_115200;
 	usart2Handler.USART_Config.USART_datasize 		= USART_DATASIZE_8BIT;
 	usart2Handler.USART_Config.USART_parity			= USART_PARITY_NONE;
