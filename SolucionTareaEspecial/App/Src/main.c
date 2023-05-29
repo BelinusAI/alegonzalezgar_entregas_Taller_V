@@ -359,7 +359,9 @@ void init_Hadware(void){
 	handlerLCD.maxI2C_FM			    =I2C_MAX_RISE_TIME_FM_16MHz;
 	handlerLCD.modeI2C_FM				=I2C_MODE_FM_SPEED_400KHz_16MHz;
 	i2c_config(&handlerLCD);
+	i2c_writeSingleRegister(&Accelerometer, POWER_CTL , 0x2D); //Reset
 	i2c_writeSingleRegister(&Accelerometer, BW_RATE, 0xE); //Toma de datos 1600Hz
+
 
 
 	// Configuración PWM

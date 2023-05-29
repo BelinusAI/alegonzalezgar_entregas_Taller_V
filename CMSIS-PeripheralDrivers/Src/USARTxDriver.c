@@ -186,6 +186,17 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 		__NOP();
 	}
 
+	//Activamos la interrupción debida al TX
+	if(ptrUsartHandler->USART_Config.USART_EnableIntTX == USART_TX_INTERRUP_ENABLE){
+			ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TXEIE;
+	}
+	else if(ptrUsartHandler->USART_Config.USART_EnableIntTX == USART_TX_INTERRUP_DISABLE){
+		ptrUsartHandler->ptrUSARTx->CR1 &= ~USART_CR1_TXEIE;
+	}
+	else{
+		__NOP();
+	}
+
 
 	/*Activamos el canal del sistema NVIC para que lea la interrupción*/
 	if(ptrUsartHandler->ptrUSARTx == USART1){
