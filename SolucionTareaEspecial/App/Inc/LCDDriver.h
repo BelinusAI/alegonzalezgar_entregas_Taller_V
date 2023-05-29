@@ -1,7 +1,9 @@
 #ifndef LCDDRIVER_H_
 #define LCDDRIVER_H_
 
-#define LCD_ADDRESS		0x23 //0100011
+
+#define LCD_ADDRESS		0b0100110 //0100110
+
 
 #include <stm32f4xx.h>
 #include "I2CDriver.h"
@@ -14,6 +16,7 @@ void LCD_sendSTR(I2C_Handler_t *ptrHandlerI2C, char *str);
 void LCD_setCursor (I2C_Handler_t *ptrHandlerI2C, uint8_t filas, uint8_t columnas);
 void LCD_writeData(I2C_Handler_t *ptrHandlerI2C, uint8_t dataToWrite);
 void LCD_Clear (I2C_Handler_t *ptrHandlerI2C);
-void shift(I2C_Handler_t *ptrHandlerI2C, int n);
+void LCD_Clear_Screen(I2C_Handler_t *ptrHandlerI2C);
+
 
 #endif /* LCDDRIVER_H_ */
