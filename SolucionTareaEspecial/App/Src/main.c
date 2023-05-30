@@ -106,11 +106,10 @@ int main (void){
 
 	//Inicializar LCD
 	LCD_Clear_Screen(&handlerLCD);
-	delay_ms(500);
-	LCD_Init(&handlerLCD);
 	delay_ms(50);
+	LCD_Init(&handlerLCD);
 	LCD_Clear(&handlerLCD);
-	delay_ms(500);
+	delay_ms(50);
 ;
 	//Imprimir Mensaje LCD
 	LCD_setCursor(&handlerLCD, 0, 0);
