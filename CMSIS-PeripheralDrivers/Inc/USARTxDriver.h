@@ -25,6 +25,10 @@
 #define USART_BAUDRATE_230400	3
 #define USART_BAUDRATE_921600	4
 
+#define USART_BAUDRATE_80MHZ_9600		0
+#define USART_BAUDRATE_80MHZ_19200		1
+#define USART_BAUDRATE_80MHZ_115200		2
+
 #define USART_DATASIZE_8BIT		0
 #define USART_DATASIZE_9BIT		1
 
@@ -84,6 +88,10 @@ uint8_t getRxData(void);
 void usart1Rx_Callback(void);
 void usart2Rx_Callback(void);
 void usart6Rx_Callback(void);
+
+void usart1Tx_Callback(void);
+void usart2Tx_Callback(void);
+void usart6Tx_Callback(void);
 
 
 #endif /* USARTXDRIVER_H_ */

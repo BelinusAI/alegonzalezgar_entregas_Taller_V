@@ -131,6 +131,28 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 		ptrUsartHandler->ptrUSARTx->BRR = 0x08B;
 	}
 
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_80MHZ_9600){
+		// El valor a cargar es 520.83333 -> Mantiza = 520,fraction = 0.8333
+		// Mantiza = 520 = 0x208, fraction = 16 * 0.8333 = 13 0xD
+		// Valor a cargar 0x208
+		// Configurando el Baudrate generator para una velocidad de 9600bps
+		ptrUsartHandler->ptrUSARTx->BRR = 0x208D;
+	}
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_80MHZ_19200){
+		// El valor a cargar es 250.4166 -> Mantiza = 250, fraction = 0.4166
+		// Mantiza = 250 = 0x104, fraction = 16 * 0.4166 = 7
+		// Valor a cargar 0x1047
+		// Configurando el Baudrate generator para una velocidad de 19200bps
+		ptrUsartHandler->ptrUSARTx->BRR = 0x1047;
+	}
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_80MHZ_115200){
+		/// El valor a cargar es 43.40277 -> Mantiza = 43,fraction = 0.40277
+		// Mantiza = 43 = 0x2B, fraction = 16 * 0.40277 = 7  0x7
+		// Valor a cargar 0x2B7
+		// Configurando el Baudrate generator para una velocidad de 115200bps
+		ptrUsartHandler->ptrUSARTx->BRR = 0x02B7;
+	}
+
 	// 2.6 Configuramos el modo: TX only, RX only, RXTX, disable
 	switch(ptrUsartHandler->USART_Config.USART_mode){
 	case USART_MODE_TX:
@@ -251,6 +273,10 @@ void USART2_IRQHandler(void){
 		auxRxData = (uint8_t) USART2->DR;
 		usart2Rx_Callback();
 	}
+	//Evaluamos si la interrupción que se dio es por Tx
+	if(USART2->SR & USART_SR_TXE){
+		usart2Tx_Callback();
+	}
 }
 
 /* Handler de la interrupción del USART
@@ -262,6 +288,10 @@ void USART6_IRQHandler(void){
 		auxRxData = (uint8_t) USART6->DR;
 		usart6Rx_Callback();
 	}
+	//Evaluamos si la interrupción que se dio es por Tx
+	if(USART6->SR & USART_SR_TXE){
+		usart6Tx_Callback();
+	}
 }
 
 /* Handler de la interrupción del USART
@@ -272,6 +302,10 @@ void USART1_IRQHandler(void){
 	if(USART1->SR & USART_SR_RXNE){
 		auxRxData = (uint8_t) USART1->DR;
 		usart1Rx_Callback();
+	}
+	//Evaluamos si la interrupción que se dio es por Tx
+	if(USART1->SR & USART_SR_TXE){
+		usart1Tx_Callback();
 	}
 }
 
@@ -295,3 +329,26 @@ __attribute__ ((weak)) void usart6Rx_Callback(void){
 	 */
 	__NOP();
 }
+
+__attribute__ ((weak)) void usart1Tx_Callback(void){
+	/* NOTE : This function should not be modified, when the callback is needed,
+	 * the usart1Rx_Callback could be implemented in the main file
+	 */
+	__NOP();
+}
+
+__attribute__((weak)) void usart2Tx_Callback(void){
+	/* NOTE : This function should not be modified, when the callback is needed,
+	 * the usart2Rx_Callback could be implemented in the main file
+	 */
+	__NOP();
+}
+
+__attribute__ ((weak)) void usart6Tx_Callback(void){
+	/* NOTE : This function should not be modified, when the callback is needed,
+	 * the usart6Rx_Callback could be implemented in the main file
+	 */
+	__NOP();
+}
+
+
