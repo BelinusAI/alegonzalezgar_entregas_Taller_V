@@ -6,11 +6,15 @@
 #include "SysTickDriver.h"
 #include "I2CDriver.h"
 #include "LCDDriver.h"
+#include "PLLDriver.h"
 
 #include "stm32f4xx.h"
 
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
+#include <string.h>
+#include <stdint.h>
 
 
 #define ACCEL_ADDRESS          	 0x53
@@ -90,9 +94,13 @@ int main (void){
 	/*Activamos el coprocesador matemático FPU */
 	SCB->CPACR |= (0xF <<20);
 
-	config_SysTick_ms(0);
-	init_Hadware();
 
+	//Configuración 80MHz
+	configPLL(0);
+	config_SysTick_ms(3);
+	//Inicio de sistema
+	init_Hadware();
+	delay_ms(50);
 	//Imprimir un mensaje de inicio
 	writeMsg(&usart1Handler, bufferData);
 
@@ -102,7 +110,7 @@ int main (void){
 	LCD_Init(&handlerLCD);
 	delay_ms(50);
 	LCD_Clear(&handlerLCD);
-	delay_ms(500);;
+	delay_ms(500);
 ;
 	//Imprimir Mensaje LCD
 	LCD_setCursor(&handlerLCD, 0, 0);
@@ -134,7 +142,6 @@ int main (void){
 			AccelY = AccelY_high << 8 | AccelY_low;
 			AccelZ = AccelZ_high << 8 | AccelZ_low;
 
-
 			muestra = 0;
 		}
 
@@ -144,13 +151,13 @@ int main (void){
 			AccelY = AccelY_high << 8 | AccelY_low;
 			AccelZ = AccelZ_high << 8 | AccelZ_low;
 
-			sprintf(LCDdata,"%9.2f m/s2",(AccelX*9.78)/256);
+			sprintf(LCDdata,"%9.2f m/s2",(AccelX*9.78)/16384);
 			LCD_setCursor(&handlerLCD, 0, 6);
 			LCD_sendSTR(&handlerLCD, LCDdata);
-			sprintf(LCDdata,"%9.2f m/s2",(AccelY*9.78)/256);
+			sprintf(LCDdata,"%9.2f m/s2",(AccelY*9.78)/16384);
 			LCD_setCursor(&handlerLCD, 1, 6);
 			LCD_sendSTR(&handlerLCD, LCDdata);
-			sprintf(LCDdata,"%9.2f m/s2",(AccelZ*9.78)/256);
+			sprintf(LCDdata,"%9.2f m/s2",(AccelZ*9.78)/16384);
 			LCD_setCursor(&handlerLCD, 2, 6);
 			LCD_sendSTR(&handlerLCD, LCDdata);
 
@@ -202,9 +209,9 @@ int main (void){
 						AccelZ_high = i2c_readSingleRegister(&Accelerometer, ACCEL_ZOUT_H);
 						AccelZ = AccelZ_high << 8 | AccelZ_low;
 
-						datosAcelerometro[contador*3] = (AccelX*9.8) / 256;
-						datosAcelerometro[contador*3 + 1] = (AccelY*9.8) / 256;
-						datosAcelerometro[contador*3 + 2] = (AccelZ*9.8) / 256;
+						datosAcelerometro[contador*3] = (AccelX*9.8) / 16384;
+						datosAcelerometro[contador*3 + 1] = (AccelY*9.8) / 16384;
+						datosAcelerometro[contador*3 + 2] = (AccelZ*9.8) / 16384;
 						muestra = 0;
 
 					}
@@ -223,7 +230,7 @@ int main (void){
 				sprintf(bufferData, "Axis X data (r) \n");
 				writeMsg(&usart1Handler, bufferData);
 				AccelX = AccelX_high << 8 | AccelX_low;
-				sprintf(bufferData, "AccelX = %f \n", (float) (AccelX) /256);
+				sprintf(bufferData, "AccelX = %f \n", (float) (AccelX) /16384);
 				writeMsg(&usart1Handler, bufferData);
 			}
 			else if(rxData == 'y'){
@@ -231,7 +238,7 @@ int main (void){
 				sprintf(bufferData, "Axis Y data (r)\n");
 				writeMsg(&usart1Handler, bufferData);
 				AccelY = AccelY_high << 8 | AccelY_low;
-				sprintf(bufferData, "AccelY = %f \n", (float) (AccelY) / 256);
+				sprintf(bufferData, "AccelY = %f \n", (float) (AccelY) / 16384);
 				writeMsg(&usart1Handler, bufferData);
 			}
 			else if(rxData == 'z'){
@@ -239,7 +246,7 @@ int main (void){
 				sprintf(bufferData, "Axis Z data (r)\n");
 				writeMsg(&usart1Handler, bufferData);
 				AccelZ = AccelZ_high << 8 | AccelZ_low;
-				sprintf(bufferData, "AccelZ = %f \n", (float)(AccelZ) / 256);
+				sprintf(bufferData, "AccelZ = %f \n", (float)(AccelZ) / 16384);
 				writeMsg(&usart1Handler, bufferData);
 			}
 			rxData = '\0';
@@ -264,8 +271,8 @@ void init_Hadware(void){
 	//Configurar TIM2
 	handlerBlinkyTimer2.ptrTIMx 							= TIM2;
 	handlerBlinkyTimer2.TIMx_Config.TIMx_mode 				= BTIMER_MODE_UP;
-	handlerBlinkyTimer2.TIMx_Config.TIMx_speed 				= BTIMER_SPEED_1ms;
-	handlerBlinkyTimer2.TIMx_Config.TIMx_period 			= 250; //Interrupción cada 250 ms
+	handlerBlinkyTimer2.TIMx_Config.TIMx_speed 				= BTIMER_80HZ_SPEED_100us;
+	handlerBlinkyTimer2.TIMx_Config.TIMx_period 			= 2500; //Interrupción cada 250 ms
 	handlerBlinkyTimer2.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUP_ENABLE;
 	BasicTimer_Config(&handlerBlinkyTimer2);
 
@@ -284,7 +291,7 @@ void init_Hadware(void){
 	GPIO_Config(&handlerPinRx);
 
 	usart1Handler.ptrUSARTx 						= USART1;
-	usart1Handler.USART_Config.USART_baudrate		= USART_BAUDRATE_115200;
+	usart1Handler.USART_Config.USART_baudrate		= USART_BAUDRATE_80MHZ_115200;
 	usart1Handler.USART_Config.USART_datasize 		= USART_DATASIZE_8BIT;
 	usart1Handler.USART_Config.USART_parity			= USART_PARITY_NONE;
 	usart1Handler.USART_Config.USART_stopbits		= USART_STOPBIT_1;
@@ -296,8 +303,8 @@ void init_Hadware(void){
 	//Configurar TIM4 Sample
 	handlerSampleTimer4.ptrTIMx 							= TIM4;
 	handlerSampleTimer4.TIMx_Config.TIMx_mode 				= BTIMER_MODE_UP;
-	handlerSampleTimer4.TIMx_Config.TIMx_speed 				= BTIMER_SPEED_10us;
-	handlerSampleTimer4.TIMx_Config.TIMx_period 			= 100; //Interrupción cada 1 ms
+	handlerSampleTimer4.TIMx_Config.TIMx_speed 				= BTIMER_80HZ_SPEED_100us;
+	handlerSampleTimer4.TIMx_Config.TIMx_period 			= 10; //Interrupción cada 1 ms
 	handlerSampleTimer4.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUP_ENABLE;
 	BasicTimer_Config(&handlerSampleTimer4);
 
@@ -325,9 +332,9 @@ void init_Hadware(void){
 	Accelerometer.ptrI2Cx                            = I2C1;
 	Accelerometer.modeI2C                            = I2C_MODE_FM;
 	Accelerometer.slaveAddress                       = ACCEL_ADDRESS;
-	Accelerometer.mainClock							 = MAIN_CLOCK_16_MHz_FOR_I2C;
-	Accelerometer.maxI2C_FM							 =I2C_MAX_RISE_TIME_FM_16MHz;
-	Accelerometer.modeI2C_FM						 =I2C_MODE_FM_SPEED_400KHz_16MHz;
+	Accelerometer.mainClock							 = MAIN_CLOCK_80_MHz_FOR_I2C;
+	Accelerometer.maxI2C_FM							 =I2C_MAX_RISE_TIME_SM_80MHZ;
+	Accelerometer.modeI2C_FM						 =I2C_MODE_FM_SPEED_400KHz_80MHz;
 	i2c_config(&Accelerometer);
 
 	// LCD
@@ -355,9 +362,9 @@ void init_Hadware(void){
 	handlerLCD.ptrI2Cx					= I2C3;
 	handlerLCD.modeI2C					= I2C_MODE_FM;
 	handlerLCD.slaveAddress				= LCD_ADDRESS;
-	handlerLCD.mainClock			    = MAIN_CLOCK_16_MHz_FOR_I2C;
-	handlerLCD.maxI2C_FM			    =I2C_MAX_RISE_TIME_FM_16MHz;
-	handlerLCD.modeI2C_FM				=I2C_MODE_FM_SPEED_400KHz_16MHz;
+	handlerLCD.mainClock			    = MAIN_CLOCK_80_MHz_FOR_I2C;
+	handlerLCD.maxI2C_FM			    =I2C_MAX_RISE_TIME_FM_80MHz;
+	handlerLCD.modeI2C_FM				=I2C_MODE_FM_SPEED_400KHz_80MHz;
 	i2c_config(&handlerLCD);
 	i2c_writeSingleRegister(&Accelerometer, POWER_CTL , 0x2D); //Reset
 	i2c_writeSingleRegister(&Accelerometer, BW_RATE, 0xE); //Toma de datos 1600Hz
@@ -375,7 +382,7 @@ void init_Hadware(void){
 	GPIO_Config(&handlerPinPwmChannel4PC9X);
 
 
-	handlerPinPwmChannel3PC8Y.pGPIOx							= GPIOC;
+	handlerPinPwmChannel3PC8Y.pGPIOx						= GPIOC;
 	handlerPinPwmChannel3PC8Y.GPIO_PinConfig.GPIO_PinNumber	= PIN_8;
 	handlerPinPwmChannel3PC8Y.GPIO_PinConfig.GPIO_PinMode	= GPIO_MODE_ALTFN;
 	handlerPinPwmChannel3PC8Y.GPIO_PinConfig.PinOPType		= GPIO_OTYPE_PUSHPULL;
@@ -399,7 +406,7 @@ void init_Hadware(void){
 	handlerSignalPWMPC9X.config.channel						=	PWM_CHANNEL_4;
 	handlerSignalPWMPC9X.config.duttyCicle					= 	duttyValueX;
 	handlerSignalPWMPC9X.config.periodo						= 	20000;
-	handlerSignalPWMPC9X.config.prescaler					= 	16;
+	handlerSignalPWMPC9X.config.prescaler					= 	80;
 	// Cargamos la configuración
 	pwm_Config(&handlerSignalPWMPC9X);
 	// Activamos la señal
@@ -411,7 +418,7 @@ void init_Hadware(void){
 	handlerSignalPWMPC8Y.config.channel						=	PWM_CHANNEL_3;
 	handlerSignalPWMPC8Y.config.duttyCicle					= 	duttyValueY;
 	handlerSignalPWMPC8Y.config.periodo						= 	20000;
-	handlerSignalPWMPC8Y.config.prescaler					= 	16;
+	handlerSignalPWMPC8Y.config.prescaler					= 	80;
 	// Cargamos la configuración
 	pwm_Config(&handlerSignalPWMPC8Y);
 	// Activamos la señal
@@ -423,7 +430,7 @@ void init_Hadware(void){
 	handlerSignalPWMPC6Z.config.channel						=	PWM_CHANNEL_1;
 	handlerSignalPWMPC6Z.config.duttyCicle					= 	duttyValueZ;
 	handlerSignalPWMPC6Z.config.periodo						= 	20000;
-	handlerSignalPWMPC6Z.config.prescaler					= 	16;
+	handlerSignalPWMPC6Z.config.prescaler					= 	80;
 	// Cargamos la configuración
 	pwm_Config(&handlerSignalPWMPC6Z);
 	// Activamos la señal
@@ -453,30 +460,30 @@ void BasicTimer4_Callback(void){
  * en el 50% del duty, mientras que para valores negativos de aceleración deberá
  *  estar por debajo de 50% y para valores positivos por encima de 50%.*/
 void PwmSignals(int16_t AccelX, int16_t AccelY, int16_t AccelZ){
-	float x = (AccelX*9.78)/256;
-	float y = (AccelX*9.78)/256;
-	float z = (AccelX*9.78)/256;
+	float x = (AccelX*9.78)/16384;
+	float y = (AccelX*9.78)/16384;
+	float z = (AccelX*9.78)/16384;
 
-	if(x > -20 && x < 20){
+	if(x > -1 && x < 1){
 		duttyValueX = 10000;
-	}else if (x<=-20){
+	}else if (x<=-1){
 		duttyValueX = 5000;
-	}else if (x>=20){
+	}else if (x>=1){
 		duttyValueX = 15000;
 	}
 
-	if(y > -20 && y < 20){
+	if(y > -1 && y < 1){
 		duttyValueY = 10000;
 	}else if (y<=-20){
 		duttyValueY = 5000;
 	}else if (y>=20){
 		duttyValueY = 15000;
 	}
-	if(z > -20 && z < 20){
+	if(z > -1 && z < 1){
 		duttyValueZ = 10000;
-	}else if (z<=-20){
+	}else if (z<=-1){
 		duttyValueZ = 5000;
-	}else if (z>=20){
+	}else if (z>=1){
 		duttyValueZ = 15000;
 	}
 	updateDuttyCycle(&handlerSignalPWMPC9X, duttyValueX);

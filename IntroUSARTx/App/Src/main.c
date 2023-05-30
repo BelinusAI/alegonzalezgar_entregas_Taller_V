@@ -14,6 +14,7 @@
 #include "ExtiDriver.h"
 #include "USARTxDriver.h"
 #include <math.h>
+#include "PLLDriver.h"
 
 
 /*Definición de elementos*/
@@ -27,7 +28,7 @@ BasicTimer_Handler_t handlerBlinkyTimer2 = {0}; //Led de estado
 //Definición USART
 GPIO_Handler_t handlerPinTx = {0};
 GPIO_Handler_t handlerPinRx = {0};
-USART_Handler_t usart2Handler = {0};
+USART_Handler_t usart1Handler = {0};
 uint8_t printMsg = 0;
 uint8_t usart2DataReceived = 0;
 
@@ -40,6 +41,7 @@ void init_Hadware(void);
 
 int main(void){
 	init_Hadware();
+	configPLL(80);
 
 	while(1){
 		if(printMsg > 4){
@@ -54,17 +56,18 @@ int main(void){
 			sprintf(buffer, "Valor de printMsg= %d \n", printMsg);
 			writeMsg(&usart2Handler, buffer);
 
-			sprintf(buffer, "Valor de PI= %f \n", M_PI);
+
 			writeMsg(&usart2Handler, buffer);
 			*/
-			writeChar(&usart2Handler, 'L');
+			sprintf(buffer,"%d", getConfigPLL());
+			writeMsg(&usart1Handler,buffer);
 			printMsg = 0;
 		}
 
 		if(usart2DataReceived != '\0'){
 			//writeChar(&usart2Handler, usart2DataReceived);
 			sprintf(buffer, "Recibido = %c \n", usart2DataReceived);
-			writeMsg(&usart2Handler, buffer);
+			writeMsg(&usart1Handler, buffer);
 			usart2DataReceived = '\0';
 		}
 
@@ -90,8 +93,8 @@ void init_Hadware(void){
 	//Configurar TIM2
 	handlerBlinkyTimer2.ptrTIMx 							= TIM2;
 	handlerBlinkyTimer2.TIMx_Config.TIMx_mode 				= BTIMER_MODE_UP;
-	handlerBlinkyTimer2.TIMx_Config.TIMx_speed 				= BTIMER_SPEED_1ms;
-	handlerBlinkyTimer2.TIMx_Config.TIMx_period 			= 250; //Interrupción cada 2500 ms
+	handlerBlinkyTimer2.TIMx_Config.TIMx_speed 				= BTIMER_80HZ_SPEED_100us;
+	handlerBlinkyTimer2.TIMx_Config.TIMx_period 			= 2500; //Interrupción cada 2500 ms
 	handlerBlinkyTimer2.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUP_ENABLE;
 	BasicTimer_Config(&handlerBlinkyTimer2);
 
@@ -108,28 +111,28 @@ void init_Hadware(void){
 	extInt_Config(&handlerUserButtomExti);
 
 	/*Config USART*/
+	// Transmition
 	handlerPinTx.pGPIOx 						= GPIOA;
-	handlerPinTx.GPIO_PinConfig.GPIO_PinNumber	= PIN_3;
+	handlerPinTx.GPIO_PinConfig.GPIO_PinNumber	= PIN_9;
 	handlerPinTx.GPIO_PinConfig.GPIO_PinMode	= GPIO_MODE_ALTFN;
 	handlerPinTx.GPIO_PinConfig.PinAltFunMode 	= AF7;
 	GPIO_Config(&handlerPinTx);
-
+	// Reception
 	handlerPinRx.pGPIOx 						= GPIOA;
-	handlerPinRx.GPIO_PinConfig.GPIO_PinNumber	= PIN_2;
+	handlerPinRx.GPIO_PinConfig.GPIO_PinNumber	= PIN_10;
 	handlerPinRx.GPIO_PinConfig.GPIO_PinMode	= GPIO_MODE_ALTFN;
 	handlerPinRx.GPIO_PinConfig.PinAltFunMode	= AF7;
 	GPIO_Config(&handlerPinRx);
 
-	usart2Handler.ptrUSARTx 						= USART2;
-	usart2Handler.USART_Config.USART_baudrate		= USART_BAUDRATE_115200;
-	usart2Handler.USART_Config.USART_datasize 		= USART_DATASIZE_8BIT;
-	usart2Handler.USART_Config.USART_parity			= USART_PARITY_NONE;
-	usart2Handler.USART_Config.USART_stopbits		= USART_STOPBIT_1;
-	usart2Handler.USART_Config.USART_mode			= USART_MODE_RXTX;
-	usart2Handler.USART_Config.USART_EnableIntRX	= USART_RX_INTERRUP_ENABLE;
-	usart2Handler.USART_Config.USART_EnableIntTX	= USART_TX_INTERRUP_DISABLE;
-	USART_Config(&usart2Handler);
-
+	usart1Handler.ptrUSARTx 						= USART1;
+	usart1Handler.USART_Config.USART_baudrate		= USART_BAUDRATE_80MHZ_19200;
+	usart1Handler.USART_Config.USART_datasize 		= USART_DATASIZE_8BIT;
+	usart1Handler.USART_Config.USART_parity			= USART_PARITY_NONE;
+	usart1Handler.USART_Config.USART_stopbits		= USART_STOPBIT_1;
+	usart1Handler.USART_Config.USART_mode			= USART_MODE_RXTX;
+	usart1Handler.USART_Config.USART_EnableIntRX	= USART_RX_INTERRUP_ENABLE;
+	usart1Handler.USART_Config.USART_EnableIntTX	= USART_TX_INTERRUP_DISABLE;
+	USART_Config(&usart1Handler);
 
 
 }
