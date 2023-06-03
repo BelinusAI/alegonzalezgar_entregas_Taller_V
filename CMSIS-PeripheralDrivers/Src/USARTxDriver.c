@@ -153,6 +153,20 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 		ptrUsartHandler->ptrUSARTx->BRR = 0x02B7;
 	}
 
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_100MHZ_9600){
+		// Configurando el Baudrate generator para una velocidad de 9600bps
+		ptrUsartHandler->ptrUSARTx->BRR = 0x2821;
+	}
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_100MHZ_19200){
+
+		// Configurando el Baudrate generator para una velocidad de 19200bps
+		ptrUsartHandler->ptrUSARTx->BRR = 0x1458;
+	}
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_100MHZ_115200){
+		// Configurando el Baudrate generator para una velocidad de 115200bps
+		ptrUsartHandler->ptrUSARTx->BRR = 0x0364;
+	}
+
 	// 2.6 Configuramos el modo: TX only, RX only, RXTX, disable
 	switch(ptrUsartHandler->USART_Config.USART_mode){
 	case USART_MODE_TX:

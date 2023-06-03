@@ -4,7 +4,7 @@
  */
 #include "PLLDriver.h"
 
-void configPLL(uint8_t frequency){
+void configPLL(void){
 	// HSI clock selected as PLL and PLLI2S clock entry
 	RCC -> PLLCFGR &= ~(RCC_PLLCFGR_PLLSRC);
 
@@ -22,21 +22,22 @@ void configPLL(uint8_t frequency){
 	* */
 	RCC->PLLCFGR &= ~(RCC_PLLCFGR_PLLN); // Limpiamos
 
-
-	RCC->PLLCFGR |= (RCC_PLLCFGR_PLLN_4);
+	//PLLN = 100
+	RCC->PLLCFGR |= (RCC_PLLCFGR_PLLN_2);
+	RCC->PLLCFGR |= (RCC_PLLCFGR_PLLN_5);
 	RCC->PLLCFGR |= (RCC_PLLCFGR_PLLN_6);
 
 	/* Main PLL (PLL) division factor for main system clock
 	 * PLL output clock frequency = VCO frequency / PLLP with PLLP = 2, 4, 6, or 8
 	 * NOT to exceed 100 MHz on this domain
 	 * */
-	/* Ponemos el PLLP en 2 */
+	/* PLLP = 2 */
 	RCC->PLLCFGR &= ~(RCC_PLLCFGR_PLLP);
 
-	/* Latencia del FLASH_ACR para que se demore y pueda hacer el registro */
+	/* Latencia del FLASH_ACR */
 	// 2 Wait states segun la tabla
 	FLASH -> ACR &= ~(FLASH_ACR_LATENCY); // Limpiamos
-	FLASH -> ACR |= (FLASH_ACR_LATENCY_2WS);
+	FLASH -> ACR |= (FLASH_ACR_LATENCY_3WS);
 
 	// Encendemos el PLL
 	RCC->CR |= RCC_CR_PLLON;
@@ -55,13 +56,12 @@ void configPLL(uint8_t frequency){
 
 /* Funcion para leer el registro con la informacion de la Frecuencia del micro */
 int getConfigPLL(void){
-	uint32_t frequencyValue =0;
-	uint32_t RCCPLLn = ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> RCC_PLLCFGR_PLLN_Pos);
+	uint32_t frequencyValue = 0;
 
-	if(RCC->CFGR | (RCC_CR_PLLON)){
-		frequencyValue= (RCCPLLn*1000000);
-	}else if(RCC->CFGR &= ~(RCC_CR_PLLON)){
-		frequencyValue = (RCC->CFGR & RCC_CFGR_SW_HSI);
+	if(RCC->CFGR & RCC_CFGR_SWS_PLL){
+		frequencyValue = 100000000;
+	}else if(RCC->CFGR & RCC_CFGR_SWS_HSI){
+		frequencyValue = 16000000;
 	}
 	return frequencyValue;
 }
