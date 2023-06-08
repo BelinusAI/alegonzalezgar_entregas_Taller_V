@@ -49,7 +49,7 @@ void config_RTC(RTC_Handler_t *ptrHandlerRTC){
 	RTC -> PRER |= RTC_PRER_PREDIV_A;
 	RTC -> PRER |= (0xFF << RTC_PRER_PREDIV_S_Pos);
 
-	RTC->CR |= RTC_CR_BYPSHAD;
+	//RTC->CR |= RTC_CR_BYPSHAD;
 
 	// 4 Load the initial time and date values in the shadow registers and configure the time format
 	//RTC->CR |= RTC_CR_BYPSHAD;

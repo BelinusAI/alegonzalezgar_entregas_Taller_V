@@ -8,6 +8,7 @@
 #include "PLLDriver.h"
 #include "RtcDriver.h"
 #include "arm_math.h"
+#include "AdcDriver.h"
 
 #include "stm32f4xx.h"
 #include <stdint.h>
@@ -31,9 +32,10 @@
 
 /*Definición de elementos*/
 //Led de estado
-GPIO_Handler_t handlerUserBlinkyPin = {0};
-BasicTimer_Handler_t handlerBlinkyTimer2 = {0};
+GPIO_Handler_t handlerUserBlinkyPin 		= {0};
+BasicTimer_Handler_t handlerBlinkyTimer2	= {0};
 
+// RTC
 RTC_Handler_t handler_RTC = {0};
 
 // USART1
@@ -68,6 +70,20 @@ uint8_t AccelZ_high = 0;
 int16_t AccelZ = 0;
 uint16_t measure[16] = {0};
 bool muestreo = false;
+
+/* PWM Handler para las señales por PWM */
+PWM_Handler_t handlerSignalPWM 			= {0};
+uint16_t duttyValue 					= 3;
+
+///* ADC  */
+uint32_t datosADC[2][256]				= {0};
+uint16_t adcData[2] = {0};
+ADC_Config_t adcConfig 				= {0};
+uint16_t adcDataSingle;
+bool adcIsComplete = false;
+uint8_t counterADC =0;
+uint16_t numADC =0;
+
 
 float datosAcelerometroX[512];
 float datosAcelerometroY[512];
@@ -113,7 +129,6 @@ int main (void){
 //	while(!(RCC->BDCR & RCC_BDCR_LSERDY)){
 //		__NOP() ;
 //	}
-
 
 	/* Inicio de sistema */
 	init_Hadware();
@@ -270,6 +285,33 @@ void init_Hadware(void){
 	handler_RTC.config.year			= 23;
 	config_RTC(&handler_RTC);
 
+	// Timer señal PWM
+	handlerSignalPWM.ptrTIMx 							= 	TIM4;
+	handlerSignalPWM.config.channel						=	PWM_CHANNEL_4;
+	handlerSignalPWM.config.duttyCicle					= 	5;
+	handlerSignalPWM.config.periodo						= 	10;
+	handlerSignalPWM.config.prescaler					= 	100;
+
+	// Cargamos la configuración
+	pwm_Config(&handlerSignalPWM);
+	// Activamos la señal
+	enableOutput(&handlerSignalPWM);
+	startPwmSignal(&handlerSignalPWM);
+
+	/* Cargando la configuracion para la conversion ADC */
+	adcConfig.numberOfChannels   = 2;
+	uint8_t channels[2] 		 = {ADC_CHANNEL_0, ADC_CHANNEL_1};
+	adcConfig.channel            = channels;
+	adcConfig.dataAlignment      = ADC_ALIGNMENT_RIGHT;
+	adcConfig.resolution         = ADC_RESOLUTION_12_BIT;
+	uint16_t samplingPeriods[2]  = {0};
+	samplingPeriods[0]			 = ADC_SAMPLING_PERIOD_56_CYCLES;
+	samplingPeriods[1]			 = ADC_SAMPLING_PERIOD_56_CYCLES;
+	adcConfig.samplingPeriod     = samplingPeriods;
+	adcConfig.externalTrigger    = ADC_EXTERN_TIM_4_CHANNEL_4_RISING;
+	adcConfig.mode               = MULTIPLE;
+	adc_Config(&adcConfig);
+
 }
 
 void BasicTimer2_Callback(void){
@@ -287,6 +329,27 @@ void BasicTimer4_Callback(void){
 	contador++;
 }
 
+void adcComplete_Callback(void){
+	adcDataSingle = getADC();
+	datosADC[counterADC][numADC]= adcDataSingle;
+
+	if(counterADC){
+		counterADC = 0;
+		numADC++;
+	}
+	else{
+		counterADC = 1;
+
+	}
+
+	if(numADC > 256){
+		adcIsComplete = true;
+		numADC = 0;
+	}
+
+}
+
+
 void parseCommands(char *ptrBufferReception){
 
 	/* Lee la cadena de caracteres a la que apunta el "ptrBufferReception
@@ -298,18 +361,37 @@ void parseCommands(char *ptrBufferReception){
 	/* Comando help */
 	if (strcmp(cmd, "help") == 0){
 		writeMsg(&usart1Handler, "Help Menu CMDs: \n");
-		writeMsg(&usart1Handler, "1)  Help -> Print this menu \n");
-		writeMsg(&usart1Handler, "2)  MCO signal -> LSE, PLL, HSI \n");
-		writeMsg(&usart1Handler, "3)  MCO prescaler -> 0,2,3,4,5 \n");
-		writeMsg(&usart1Handler, "4)  RTC \n");
-		writeMsg(&usart1Handler, "5)  RTC \n");
-		writeMsg(&usart1Handler, "6)  RTC \n");
-		writeMsg(&usart1Handler, "7)  RTC \n");
-		writeMsg(&usart1Handler, "8)  Datos analogos: Velocidad de muestreo \n");
-		writeMsg(&usart1Handler, "9)  Datos analogos: Presentacion de los arreglos \n");
-		writeMsg(&usart1Handler, "10) getData ->  Número de datos \n");
-		writeMsg(&usart1Handler, "11) Acelerometro: Frecuencias \n");
+		writeMsg(&usart1Handler, "1)  help -> Print this menu \n");
+		writeMsg(&usart1Handler, "2) TODO MCO signal -> LSE, PLL, HSI \n");
+		writeMsg(&usart1Handler, "3) TODO MCO prescaler -> 0,2,3,4,5 \n");
+		writeMsg(&usart1Handler, "4)  getDate -> Mostrar la hora y la fecha \n");
+		writeMsg(&usart1Handler, "5)  setDate hora minuto segundo -> Configurar la fecha \n");
+		writeMsg(&usart1Handler, "6)  setDate año mes día -> Configurar la fecha \n");
+		writeMsg(&usart1Handler, "7)  setSummer -> Agregar una hora \n");
+		writeMsg(&usart1Handler, "8)  getADC -> presentación de los arreglos de datos ADC. \n");
+		writeMsg(&usart1Handler, "9)  setPerio periodo(us) -> configurar la velocidad de muestreo de la señal ADC  \n");
+		writeMsg(&usart1Handler, "10) getData ->  Adquirir datos acelerometro \n");
+		writeMsg(&usart1Handler, "11) getFrequency -> frecuencia de los datos CMSIS-FFT \n");
+	}
+	/* Almacenar datos ADC en arreglos de 256 datos */
+	else if (strcmp(cmd, "getADC") == 0) {
+		startPwmSignal(&handlerSignalPWM);
 
+		if(adcIsComplete){
+			ADC1->CR2 &= ~ADC_CR2_EXTEN; //Desactiva interrupción externa
+			for (int i=0; i<256; i++){
+				sprintf(bufferData, "%u ; %u \n", (unsigned int )datosADC[0][i],(unsigned int )datosADC[1][i]);
+				writeMsg(&usart1Handler, bufferData);
+			}
+			stopPwmSignal(&handlerSignalPWM);
+		}
+	}
+	/* Cambiar Velocidad de muestreo */
+	else if (strcmp(cmd, "setPeriod") == 0) {
+		updateFrequency(&handlerSignalPWM, firstParameter);
+		updateDuttyCycle(&handlerSignalPWM, firstParameter / 2);
+		sprintf(bufferData, "set Periodo %u microsegundos", firstParameter);
+		writeMsg(&usart1Handler, bufferData);
 	}
 	/* Mostrar la hora y la fecha */
 	else if (strcmp(cmd, "getDate") == 0) {
@@ -446,7 +528,6 @@ void parseCommands(char *ptrBufferReception){
 			writeMsg(&usart1Handler, "FFT not initialized...");
 		}
 	}
-
 
 	else if (strcmp(cmd, "w") == 0) {
 		sprintf(bufferData, "WHO_AM_I? (r)\n");
