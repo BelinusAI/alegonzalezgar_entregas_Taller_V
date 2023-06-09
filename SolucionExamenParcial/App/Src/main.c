@@ -87,11 +87,11 @@ uint8_t counterADC =0;
 uint16_t numADC =0;
 
 
-float datosAcelerometroX[256];
-float datosAcelerometroY[256];
-float datosAcelerometroZ[256];
+float datosAcelerometroX[128];
+float datosAcelerometroY[128];
+float datosAcelerometroZ[128];
 
-float transformedSignalY[256];
+float transformedSignalY[128];
 
 float32_t stopTime = 1.0;
 uint32_t ifftFlag = 0;
@@ -402,10 +402,15 @@ void parseCommands(char *ptrBufferReception){
 	}
 	/* Cambiar Velocidad de muestreo */
 	else if (strcmp(cmd, "setPeriod") == 0) {
-		updateFrequency(&handlerSignalPWM, firstParameter);
-		updateDuttyCycle(&handlerSignalPWM, firstParameter / 2);
-		sprintf(bufferData, "set Periodo %u microsegundos", firstParameter);
-		writeMsg(&usart1Handler, bufferData);
+		if(firstParameter >=0){
+			updateFrequency(&handlerSignalPWM, firstParameter);
+			updateDuttyCycle(&handlerSignalPWM, firstParameter / 2);
+			sprintf(bufferData, "set Periodo %u microsegundos", firstParameter);
+			writeMsg(&usart1Handler, bufferData);
+		}
+		else{
+			writeMsg(&usart1Handler, "Periodo no valido\n");
+		}
 	}
 	/* Mostrar la hora y la fecha */
 	else if (strcmp(cmd, "getDate") == 0) {
@@ -466,7 +471,7 @@ void parseCommands(char *ptrBufferReception){
 		writeMsg(&usart1Handler, bufferData);
 		i2c_writeSingleRegister(&Accelerometer, POWER_CTL , 0x2D);
 		contador = 0;
-		while(contador < 256){
+		while(contador < 128){
 			i2c_readMultipleRegister(&Accelerometer, ACCEL_XOUT_L, measure);
 			AccelX_low 	= measure[0];
 			AccelX_high = measure[1];
@@ -496,7 +501,7 @@ void parseCommands(char *ptrBufferReception){
 		}
 
 		// Imprimir el areglo de 128 datos
-		for(int i = 0; i < 256; i++){
+		for(int i = 0; i < 128; i++){
 			sprintf(bufferData, "n=%d x=%4.2f y=%4.2f z=%4.2f\n", i, datosAcelerometroX[i] * 9.8 / 256, datosAcelerometroY[i]*9.8 / 256, datosAcelerometroZ[i]*9.8 / 256);
 			writeMsg(&usart1Handler, bufferData);
 		}
@@ -525,14 +530,14 @@ void parseCommands(char *ptrBufferReception){
 						FTT_Max = datosAcelerometroY[i];
 						indexMax = j;
 					}
-					sprintf(bufferData, "%u ; %#.6f\n,", j, 2*datosAcelerometroY[i]);
+					sprintf(bufferData, "%u ; %#.6f\n", j, 2*datosAcelerometroY[i]);
 					writeMsg(&usart1Handler, bufferData);
 					j++;
 				}
 			}
 
-			sprintf(bufferData, "index %d ; result %f\n,", (int)indexMax, FTT_Max);
-			writeMsg(&usart1Handler, bufferData);
+//			sprintf(bufferData, "index %d ; result %f\n,", (int)indexMax, FTT_Max);
+//			writeMsg(&usart1Handler, bufferData);
 
 			float w = (indexMax * ((2 * PI)) / ((fttSize/2) * 0.005));
 			sprintf(bufferData, "frecuency w %f Hz \n,", w);
@@ -563,6 +568,7 @@ void parseCommands(char *ptrBufferReception){
 		writeMsg(&usart1Handler, cmd);
 
 	}
+
 }
 
 void selectMCOSignal(uint16_t param){
