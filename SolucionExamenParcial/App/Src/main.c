@@ -29,11 +29,13 @@
 #define ACCEL_ZOUT_H             55
 
 
-
 /*Definición de elementos*/
 //Led de estado
 GPIO_Handler_t handlerUserBlinkyPin 		= {0};
 BasicTimer_Handler_t handlerBlinkyTimer2	= {0};
+
+// Pin MCO
+GPIO_Handler_t handlerPinMCO = {0};
 
 // RTC
 RTC_Handler_t handler_RTC = {0};
@@ -85,11 +87,11 @@ uint8_t counterADC =0;
 uint16_t numADC =0;
 
 
-float datosAcelerometroX[512];
-float datosAcelerometroY[512];
-float datosAcelerometroZ[512];
+float datosAcelerometroX[256];
+float datosAcelerometroY[256];
+float datosAcelerometroZ[256];
 
-float transformedSignalY[512];
+float transformedSignalY[256];
 
 float32_t stopTime = 1.0;
 uint32_t ifftFlag = 0;
@@ -111,6 +113,8 @@ char userMsg[64] = {0};
 //Prototipos de funciones
 void init_Hadware(void);
 void parseCommands(char *ptrBufferReception);
+void selectMCOSignal(uint16_t param);
+void selectMCOpresc(uint16_t prescaler);
 
 
 int main (void){
@@ -118,53 +122,26 @@ int main (void){
 	SCB->CPACR |= (0xF <<20);
 
 	/* Configuración Clock */
-	configPLL(); // Activamos el PLL Configuración a 100MHz
-	config_SysTick_ms(2); // Configuración SysTick 100MHz
-
-//	// Desactivamos el modo Backup Protection
-//	PWR -> CR |= PWR_CR_DBP;
-//	// Activamos el LSE (LOW SPEED EXTERNAL 32KHz)
-//	RCC -> BDCR |= RCC_BDCR_LSEON;
-//	/* Wait until LSE is ready */
-//	while(!(RCC->BDCR & RCC_BDCR_LSERDY)){
-//		__NOP() ;
-//	}
+	configPLL(); 			// Activamos el PLL Configuración a 100MHz
+	config_SysTick_ms(2); 	// Configuración SysTick 100MHz
 
 	/* Inicio de sistema */
 	init_Hadware();
 
-	sprintf(bufferData, "Before: 0x%x \n", (unsigned int) ((RCC->CR  & RCC_CR_HSITRIM_Msk) >> RCC_CR_HSITRIM_Pos));
-	writeMsg(&usart1Handler, bufferData);
+//	sprintf(bufferData, "Before: 0x%x \n", (unsigned int) ((RCC->CR  & RCC_CR_HSITRIM_Msk) >> RCC_CR_HSITRIM_Pos));
+//	writeMsg(&usart1Handler, bufferData);
 
-	RCC->CR &= ~(RCC_CR_HSITRIM_Msk);	// Limpiar
-	RCC->CR |= (0xD<<RCC_CR_HSITRIM_Pos); // Calibrar reloj -0.9%
+	/* Sintonizar  la frecuencia del oscilador interno principal (HSI) */
+	RCC->CR &= ~(RCC_CR_HSITRIM_Msk);		// Limpiar
+	RCC->CR |= (0xD<<RCC_CR_HSITRIM_Pos); 	// Calibrar reloj -0.9%
 
-	sprintf(bufferData, "After: 0x%x \n", (unsigned int) ((RCC->CR  & RCC_CR_HSITRIM_Msk) >> RCC_CR_HSITRIM_Pos));
-	writeMsg(&usart1Handler, bufferData);
+//	sprintf(bufferData, "After: 0x%x \n", (unsigned int) ((RCC->CR  & RCC_CR_HSITRIM_Msk) >> RCC_CR_HSITRIM_Pos));
+//	writeMsg(&usart1Handler, bufferData);
 
-	//Imprimir un mensaje de inicio
+	/* Imprimir un mensaje de inicio */
 	writeMsg(&usart1Handler, "Solución Examen Parcial \n");
 
 	while(1){
-
-		if(muestreo){
-			// Leer los 6 registros continuos
-
-			i2c_readMultipleRegister(&Accelerometer, ACCEL_XOUT_H, measure);
-			AccelX_low 	= measure[0];
-			AccelX_high = measure[1];
-			AccelY_low 	= measure[2];
-			AccelY_high = measure[3];
-			AccelZ_low 	= measure[4];
-			AccelZ_high = measure[5];
-
-			AccelX = AccelX_high << 8 | AccelX_low;
-			AccelY = AccelY_high << 8 | AccelY_low;
-			AccelZ = AccelZ_high << 8 | AccelZ_low;
-
-			muestreo = false;
-
-		}
 
 		// El caracter '@' nos indica que es el final de la cadena
 		if(rxData != '\0'){
@@ -190,15 +167,18 @@ int main (void){
 			stringComplete = false;
 		}
 	}
-
 	return 0;
 }
 
+
 void init_Hadware(void){
 	/* Blinky Pin */
-	//Puerto PA5
-	handlerUserBlinkyPin.pGPIOx 							= GPIOA;
-	handlerUserBlinkyPin.GPIO_PinConfig.GPIO_PinNumber		= PIN_5;
+
+	RCC->CR &= ~(RCC_CR_HSEON); // HSE oscillator is OFF
+
+	//Puerto H1
+	handlerUserBlinkyPin.pGPIOx 							= GPIOH;
+	handlerUserBlinkyPin.GPIO_PinConfig.GPIO_PinNumber		= PIN_1;
 	handlerUserBlinkyPin.GPIO_PinConfig.GPIO_PinMode		= GPIO_MODE_OUT;
 	handlerUserBlinkyPin.GPIO_PinConfig.PinOPType 			= GPIO_OTYPE_PUSHPULL;
 	handlerUserBlinkyPin.GPIO_PinConfig.PinPuPdControl		= GPIO_PUPDR_NOTHING;
@@ -240,57 +220,59 @@ void init_Hadware(void){
 
 	/* Configuración I2C Acelerometro */
 	//SCL
-	I2cSCL.pGPIOx                                    = GPIOB;
-	I2cSCL.GPIO_PinConfig.GPIO_PinNumber             = PIN_8;
-	I2cSCL.GPIO_PinConfig.GPIO_PinMode               = GPIO_MODE_ALTFN;
-	I2cSCL.GPIO_PinConfig.PinOPType	            	 = GPIO_OTYPE_OPENDRAIN;
-	I2cSCL.GPIO_PinConfig.PinPuPdControl	         = GPIO_PUPDR_NOTHING;
-	I2cSCL.GPIO_PinConfig.GPIO_PinSpeed              = GPIO_OSPEEDR_FAST;
-	I2cSCL.GPIO_PinConfig.PinAltFunMode	   		     = AF4;
+	I2cSCL.pGPIOx                               		    = GPIOB;
+	I2cSCL.GPIO_PinConfig.GPIO_PinNumber            		= PIN_8;
+	I2cSCL.GPIO_PinConfig.GPIO_PinMode             			= GPIO_MODE_ALTFN;
+	I2cSCL.GPIO_PinConfig.PinOPType	            			= GPIO_OTYPE_OPENDRAIN;
+	I2cSCL.GPIO_PinConfig.PinPuPdControl	         		= GPIO_PUPDR_NOTHING;
+	I2cSCL.GPIO_PinConfig.GPIO_PinSpeed              		= GPIO_OSPEEDR_FAST;
+	I2cSCL.GPIO_PinConfig.PinAltFunMode	   		     		= AF4;
 	GPIO_Config(&I2cSCL);
 	//SDA
-	I2cSDA.pGPIOx                                    = GPIOB;
-	I2cSDA.GPIO_PinConfig.GPIO_PinNumber             = PIN_9;
-	I2cSDA.GPIO_PinConfig.GPIO_PinMode               = GPIO_MODE_ALTFN;
-	I2cSDA.GPIO_PinConfig.PinOPType		             = GPIO_OTYPE_OPENDRAIN;
-	I2cSDA.GPIO_PinConfig.PinPuPdControl	         = GPIO_PUPDR_NOTHING;
-	I2cSDA.GPIO_PinConfig.GPIO_PinSpeed              = GPIO_OSPEEDR_FAST;
-	I2cSDA.GPIO_PinConfig.PinAltFunMode		         = AF4;
+	I2cSDA.pGPIOx                                    		= GPIOB;
+	I2cSDA.GPIO_PinConfig.GPIO_PinNumber             		= PIN_9;
+	I2cSDA.GPIO_PinConfig.GPIO_PinMode               		= GPIO_MODE_ALTFN;
+	I2cSDA.GPIO_PinConfig.PinOPType		             		= GPIO_OTYPE_OPENDRAIN;
+	I2cSDA.GPIO_PinConfig.PinPuPdControl	         		= GPIO_PUPDR_NOTHING;
+	I2cSDA.GPIO_PinConfig.GPIO_PinSpeed              		= GPIO_OSPEEDR_FAST;
+	I2cSDA.GPIO_PinConfig.PinAltFunMode		         		= AF4;
 	GPIO_Config(&I2cSDA);
 	// I2C1
-	Accelerometer.ptrI2Cx                            = I2C1;
-	Accelerometer.modeI2C                            = I2C_MODE_FM;
-	Accelerometer.slaveAddress                       = ACCEL_ADDRESS;
-	Accelerometer.mainClock							 = MAIN_CLOCK_100_MHz_FOR_I2C;
-	Accelerometer.maxI2C_FM							 =I2C_MAX_RISE_TIME_SM_100MHZ;
-	Accelerometer.modeI2C_FM						 =I2C_MODE_FM_SPEED_400KHz_100MHz;
+	Accelerometer.ptrI2Cx                            		= I2C1;
+	Accelerometer.modeI2C                            		= I2C_MODE_FM;
+	Accelerometer.slaveAddress                       		= ACCEL_ADDRESS;
+	Accelerometer.mainClock							 		= MAIN_CLOCK_100_MHz_FOR_I2C;
+	Accelerometer.maxI2C_FM							 		=I2C_MAX_RISE_TIME_SM_100MHZ;
+	Accelerometer.modeI2C_FM						 		=I2C_MODE_FM_SPEED_400KHz_100MHz;
 	i2c_config(&Accelerometer);
 	i2c_writeSingleRegister(&Accelerometer, POWER_CTL , 0x2D); //Reset
 	i2c_writeSingleRegister(&Accelerometer, BW_RATE, 0xE); //Toma de datos 1600Hz
 
 	//Configurar TIM4 Sample
-	handlerSampleTimer4.ptrTIMx 							= TIM4;
+	handlerSampleTimer4.ptrTIMx 							= TIM3;
 	handlerSampleTimer4.TIMx_Config.TIMx_mode 				= BTIMER_MODE_UP;
 	handlerSampleTimer4.TIMx_Config.TIMx_speed 				= BTIMER_100MHZ_SPEED_100us;
 	handlerSampleTimer4.TIMx_Config.TIMx_period 			= 50; //Interrupción cada 5 ms 200 Hz
 	handlerSampleTimer4.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUP_ENABLE;
 	BasicTimer_Config(&handlerSampleTimer4);
 
+	/* Configurar RTC */
 	//handler_RTC
-	handler_RTC.config.hour 		= 23;
-	handler_RTC.config.minutes	 	= 59;
-	handler_RTC.config.seconds 		= 50;
-	handler_RTC.config.date 		= 24;
-	handler_RTC.config.month 		= 01;
-	handler_RTC.config.year			= 23;
+	handler_RTC.config.hour 			= 23;
+	handler_RTC.config.minutes	 		= 59;
+	handler_RTC.config.seconds 			= 50;
+	handler_RTC.config.date 			= 01;
+	handler_RTC.config.month 			= 01;
+	handler_RTC.config.year				= 23;
 	config_RTC(&handler_RTC);
 
+	/* Configurar ADC */
 	// Timer señal PWM
-	handlerSignalPWM.ptrTIMx 							= 	TIM4;
-	handlerSignalPWM.config.channel						=	PWM_CHANNEL_4;
-	handlerSignalPWM.config.duttyCicle					= 	5;
-	handlerSignalPWM.config.periodo						= 	10;
-	handlerSignalPWM.config.prescaler					= 	100;
+	handlerSignalPWM.ptrTIMx 									= TIM4;
+	handlerSignalPWM.config.channel								= PWM_CHANNEL_4;
+	handlerSignalPWM.config.duttyCicle							= 5;
+	handlerSignalPWM.config.periodo								= 10;
+	handlerSignalPWM.config.prescaler							= 100;
 
 	// Cargamos la configuración
 	pwm_Config(&handlerSignalPWM);
@@ -298,20 +280,29 @@ void init_Hadware(void){
 	enableOutput(&handlerSignalPWM);
 	startPwmSignal(&handlerSignalPWM);
 
-	/* Cargando la configuracion para la conversion ADC */
-	adcConfig.numberOfChannels   = 2;
-	uint8_t channels[2] 		 = {ADC_CHANNEL_0, ADC_CHANNEL_1};
-	adcConfig.channel            = channels;
-	adcConfig.dataAlignment      = ADC_ALIGNMENT_RIGHT;
-	adcConfig.resolution         = ADC_RESOLUTION_12_BIT;
-	uint16_t samplingPeriods[2]  = {0};
-	samplingPeriods[0]			 = ADC_SAMPLING_PERIOD_56_CYCLES;
-	samplingPeriods[1]			 = ADC_SAMPLING_PERIOD_56_CYCLES;
-	adcConfig.samplingPeriod     = samplingPeriods;
-	adcConfig.externalTrigger    = ADC_EXTERN_TIM_4_CHANNEL_4_RISING;
-	adcConfig.mode               = MULTIPLE;
+	// Cargando la configuracion para la conversion ADC
+	adcConfig.numberOfChannels   								= 2;
+	uint8_t channels[2] 		 								= {ADC_CHANNEL_0, ADC_CHANNEL_1};
+	adcConfig.channel            								= channels;
+	adcConfig.dataAlignment      								= ADC_ALIGNMENT_RIGHT;
+	adcConfig.resolution         								= ADC_RESOLUTION_12_BIT;
+	uint16_t samplingPeriods[2]  								= {0};
+	samplingPeriods[0]			 								= ADC_SAMPLING_PERIOD_56_CYCLES;
+	samplingPeriods[1]											= ADC_SAMPLING_PERIOD_56_CYCLES;
+	adcConfig.samplingPeriod     								= samplingPeriods;
+	adcConfig.externalTrigger    								= ADC_EXTERN_TIM_4_CHANNEL_4_RISING;
+	adcConfig.mode               								= MULTIPLE;
 	adc_Config(&adcConfig);
 
+	/* Configurar MCO Pin para ver la velocidad */
+	handlerPinMCO.pGPIOx                             	    	= GPIOA;
+	handlerPinMCO.GPIO_PinConfig.GPIO_PinNumber       	    	= PIN_8;
+	handlerPinMCO.GPIO_PinConfig.GPIO_PinMode         	    	= GPIO_MODE_ALTFN;
+	handlerPinMCO.GPIO_PinConfig.PinOPType	           			= GPIO_OTYPE_PUSHPULL;
+	handlerPinMCO.GPIO_PinConfig.GPIO_PinSpeed            		= GPIO_OSPEEDR_FAST;
+	handlerPinMCO.GPIO_PinConfig.PinPuPdControl      			= GPIO_PUPDR_NOTHING;
+	handlerPinMCO.GPIO_PinConfig.PinAltFunMode       			= AF0;
+	GPIO_Config(&handlerPinMCO);
 }
 
 void BasicTimer2_Callback(void){
@@ -324,7 +315,7 @@ void usart1Rx_Callback(void){
 	rxData = getRxData();
 }
 
-void BasicTimer4_Callback(void){
+void BasicTimer3_Callback(void){
 	muestreo = true;
 	contador++;
 }
@@ -361,24 +352,47 @@ void parseCommands(char *ptrBufferReception){
 	/* Comando help */
 	if (strcmp(cmd, "help") == 0){
 		writeMsg(&usart1Handler, "Help Menu CMDs: \n");
-		writeMsg(&usart1Handler, "1)  help -> Print this menu \n");
-		writeMsg(&usart1Handler, "2) TODO MCO signal -> LSE, PLL, HSI \n");
-		writeMsg(&usart1Handler, "3) TODO MCO prescaler -> 0,2,3,4,5 \n");
-		writeMsg(&usart1Handler, "4)  getDate -> Mostrar la hora y la fecha \n");
-		writeMsg(&usart1Handler, "5)  setDate hora minuto segundo -> Configurar la fecha \n");
-		writeMsg(&usart1Handler, "6)  setDate año mes día -> Configurar la fecha \n");
-		writeMsg(&usart1Handler, "7)  setSummer -> Agregar una hora \n");
-		writeMsg(&usart1Handler, "8)  getADC -> presentación de los arreglos de datos ADC. \n");
-		writeMsg(&usart1Handler, "9)  setPerio periodo(us) -> configurar la velocidad de muestreo de la señal ADC  \n");
-		writeMsg(&usart1Handler, "10) getData ->  Adquirir datos acelerometro \n");
-		writeMsg(&usart1Handler, "11) getFrequency -> frecuencia de los datos CMSIS-FFT \n");
+		writeMsg(&usart1Handler, "1)  help 									-> Mostrar este menu \n");
+		writeMsg(&usart1Handler, "2)  MCOsignal [signal] 				-> Configurar signal 0:PLL 1:HSI 2:LSE\n");
+		writeMsg(&usart1Handler, "3)  MCOpres [prescaler] 				-> Configurar prescaler: 0,2,3,4,5 \n");
+		writeMsg(&usart1Handler, "4)  getDate 								-> Mostrar la hora y la fecha \n");
+		writeMsg(&usart1Handler, "5)  setDate [hora] [minuto] [segundo] 	-> Configurar la fecha \n");
+		writeMsg(&usart1Handler, "6)  setDate [año] [mes] [día] 			-> Configurar la fecha \n");
+		writeMsg(&usart1Handler, "7)  setSummer 							-> Agregar una hora \n");
+		writeMsg(&usart1Handler, "8)  getADC 								-> Presentar los arreglos de datos ADC. \n");
+		writeMsg(&usart1Handler, "9)  setPerio [periodo us] 				-> Configurar la velocidad de muestreo de la señal ADC\n");
+		writeMsg(&usart1Handler, "10) getData 								-> Adquirir datos acelerometro \n");
+		writeMsg(&usart1Handler, "11) getFrequency 							-> Frecuencia de los datos CMSIS-FFT \n");
+		writeMsg(&usart1Handler, "12) adjust [scaler] 						-> Sintonizar scaler: 1 - 31 \n");
 	}
+	/* Cambiar la configuración de la señal  del MCO1 */
+	else if (strcmp(cmd, "MCOsignal") == 0) {
+		if(firstParameter == 0 || firstParameter == 1 || firstParameter == 2){
+			selectMCOSignal(firstParameter);
+			writeMsg(&usart1Handler, "Signal configured");
+		}
+		else{
+			writeMsg(&usart1Handler, "Parametro no valido\n");
+		}
+	}
+
+	else if (strcmp(cmd, "MCOpres") == 0) {
+		if(firstParameter == 0 || firstParameter == 2 || firstParameter == 3 || firstParameter == 4 || firstParameter == 5){
+			selectMCOpresc(firstParameter);
+			sprintf(bufferData, "Prescaler configured: %u", firstParameter);
+			writeMsg(&usart1Handler, bufferData);
+		}
+		else{
+			writeMsg(&usart1Handler, "Parametro no valido\n");
+		}
+	}
+
 	/* Almacenar datos ADC en arreglos de 256 datos */
 	else if (strcmp(cmd, "getADC") == 0) {
 		startPwmSignal(&handlerSignalPWM);
 
 		if(adcIsComplete){
-			ADC1->CR2 &= ~ADC_CR2_EXTEN; //Desactiva interrupción externa
+
 			for (int i=0; i<256; i++){
 				sprintf(bufferData, "%u ; %u \n", (unsigned int )datosADC[0][i],(unsigned int )datosADC[1][i]);
 				writeMsg(&usart1Handler, bufferData);
@@ -416,7 +430,7 @@ void parseCommands(char *ptrBufferReception){
 			writeMsg(&usart1Handler, bufferData);
 		}
 		else{
-			writeMsg(&usart1Handler, "Time no valido");
+			writeMsg(&usart1Handler, "Time no valido\n");
 		}
 	}
 	/* Configurar la fecha */
@@ -434,7 +448,7 @@ void parseCommands(char *ptrBufferReception){
 			writeMsg(&usart1Handler, bufferData);
 		}
 		else{
-			writeMsg(&usart1Handler, "Date no valido");
+			writeMsg(&usart1Handler, "Date no valido\n");
 		}
 	}
 	/*Add 1 hour (summer time change) */
@@ -450,6 +464,7 @@ void parseCommands(char *ptrBufferReception){
 	else if (strcmp(cmd, "getData") == 0) {
 		sprintf(bufferData, "Adquiriendo datos ... \n");
 		writeMsg(&usart1Handler, bufferData);
+		i2c_writeSingleRegister(&Accelerometer, POWER_CTL , 0x2D);
 		contador = 0;
 		while(contador < 256){
 			i2c_readMultipleRegister(&Accelerometer, ACCEL_XOUT_L, measure);
@@ -480,11 +495,11 @@ void parseCommands(char *ptrBufferReception){
 			writeMsg(&usart1Handler, bufferData);
 		}
 
-//		// Imprimir el areglo de 128 datos
-//		for(int i = 0; i < 128; i++){
-//			sprintf(bufferData, "n=%d x=%4.2f y=%4.2f z=%4.2f\n", i, datosAcelerometroX[i] * 9.8 / 256, datosAcelerometroY[i]*9.8 / 256, datosAcelerometroZ[i]*9.8 / 256);
-//			writeMsg(&usart1Handler, bufferData);
-//		}
+		// Imprimir el areglo de 128 datos
+		for(int i = 0; i < 256; i++){
+			sprintf(bufferData, "n=%d x=%4.2f y=%4.2f z=%4.2f\n", i, datosAcelerometroX[i] * 9.8 / 256, datosAcelerometroY[i]*9.8 / 256, datosAcelerometroZ[i]*9.8 / 256);
+			writeMsg(&usart1Handler, bufferData);
+		}
 	}
 
 	/*  Presentar los datos de la frecuencia leída por el acelerómetro (CMSIS-FFT) */
@@ -519,7 +534,7 @@ void parseCommands(char *ptrBufferReception){
 			sprintf(bufferData, "index %d ; result %f\n,", (int)indexMax, FTT_Max);
 			writeMsg(&usart1Handler, bufferData);
 
-			float w = indexMax * ((2 * PI) / ((fttSize/2) * 0.005));
+			float w = (indexMax * ((2 * PI)) / ((fttSize/2) * 0.005));
 			sprintf(bufferData, "frecuency w %f Hz \n,", w);
 			writeMsg(&usart1Handler, bufferData);
 
@@ -529,13 +544,16 @@ void parseCommands(char *ptrBufferReception){
 		}
 	}
 
-	else if (strcmp(cmd, "w") == 0) {
-		sprintf(bufferData, "WHO_AM_I? (r)\n");
-		writeMsg(&usart1Handler, bufferData);
 
-		i2cBuffer = i2c_readSingleRegister(&Accelerometer, WHO_AM_I);
-		sprintf(bufferData, "dataRead = 0x%x \n", (unsigned int) i2cBuffer);
-		writeMsg(&usart1Handler, bufferData);
+	else if (strcmp(cmd, "adjust") == 0) {
+			if(firstParameter > 0 && firstParameter < 32){
+				RCC->CR &= ~(RCC_CR_HSITRIM_Msk);					// Limpiar
+				RCC->CR |= (firstParameter<<RCC_CR_HSITRIM_Pos); 	// Calibrar reloj
+				writeMsg(&usart1Handler, "Adjust\n");
+			}
+			else{
+				writeMsg(&usart1Handler, "Parametro invalido\n");
+			}
 		}
 
 	else {
@@ -544,6 +562,53 @@ void parseCommands(char *ptrBufferReception){
 		writeMsg(&usart1Handler, bufferData);
 		writeMsg(&usart1Handler, cmd);
 
+	}
+}
+
+void selectMCOSignal(uint16_t param){
+	if(param==0){
+		// Seleccionamos la senal PLL
+		RCC -> CFGR &= ~RCC_CFGR_MCO1;
+		RCC -> CFGR |= RCC_CFGR_MCO1_0;
+		RCC -> CFGR |= RCC_CFGR_MCO1_1;
+	} else if (param==1){
+		// Seleccionamos la senal HSI
+		RCC -> CFGR &= ~RCC_CFGR_MCO1;
+	} else if(param==2){
+		// Seleccionamos la senal LSE
+		RCC -> CFGR &= ~RCC_CFGR_MCO1;
+		RCC -> CFGR |= RCC_CFGR_MCO1_0;
+		RCC -> CFGR &= ~RCC_CFGR_MCO1_1;
+
+	}
+}
+
+void selectMCOpresc(uint16_t prescaler){
+	if (prescaler ==0){
+		RCC -> CFGR &= ~RCC_CFGR_MCO1PRE;
+	}
+	if(prescaler ==2){
+		// Utilizamos un prescaler para poder ver la senal en el osciloscopio
+		RCC -> CFGR &= ~RCC_CFGR_MCO1PRE;
+		RCC -> CFGR |= RCC_CFGR_MCO1PRE_2;
+	}
+	else if(prescaler ==3){
+		// Utilizamos un prescaler para poder ver la senal en el osciloscopio
+		RCC -> CFGR |= RCC_CFGR_MCO1PRE_0;
+		RCC -> CFGR &= ~RCC_CFGR_MCO1PRE_1;
+		RCC -> CFGR |= RCC_CFGR_MCO1PRE_2;
+	}
+	else if(prescaler ==4){
+		// Utilizamos un prescaler para poder ver la senal en el osciloscopio
+		RCC -> CFGR &= ~RCC_CFGR_MCO1PRE_0;
+		RCC -> CFGR |= RCC_CFGR_MCO1PRE_1;
+		RCC -> CFGR |= RCC_CFGR_MCO1PRE_2;
+	}
+	else if(prescaler ==5){
+		// Utilizamos un prescaler para poder ver la senal en el osciloscopio
+		RCC -> CFGR |= RCC_CFGR_MCO1PRE_0;
+		RCC -> CFGR |= RCC_CFGR_MCO1PRE_1;
+		RCC -> CFGR |= RCC_CFGR_MCO1PRE_2;
 	}
 }
 
