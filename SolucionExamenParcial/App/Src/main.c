@@ -402,7 +402,7 @@ void parseCommands(char *ptrBufferReception){
 	}
 	/* Cambiar Velocidad de muestreo */
 	else if (strcmp(cmd, "setPeriod") == 0) {
-		if(firstParameter >=0){
+		if(firstParameter >0){
 			updateFrequency(&handlerSignalPWM, firstParameter);
 			updateDuttyCycle(&handlerSignalPWM, firstParameter / 2);
 			sprintf(bufferData, "set Periodo %u microsegundos", firstParameter);
@@ -546,7 +546,7 @@ void parseCommands(char *ptrBufferReception){
 //			writeMsg(&usart1Handler, bufferData);
 
 			// Calcular la frecuencia
-			float w = (indexMax) / (fttSize * 0.005);
+			float w = (indexMax) / ((fttSize) * 0.005);
 			sprintf(bufferData, "frecuency w %f Hz \n,", w);
 			writeMsg(&usart1Handler, bufferData);
 
@@ -576,6 +576,10 @@ void parseCommands(char *ptrBufferReception){
 		writeMsg(&usart1Handler, "\n");
 
 	}
+
+	firstParameter  = 0;
+	secondParameter = 1000;
+	secondParameter = 1000;
 
 }
 
