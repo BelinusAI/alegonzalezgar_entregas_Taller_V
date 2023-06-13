@@ -41,50 +41,50 @@ GPIO_Handler_t handlerPinMCO = {0};
 RTC_Handler_t handler_RTC = {0};
 
 // USART1
-GPIO_Handler_t handlerPinTx = {0};
-GPIO_Handler_t handlerPinRx = {0};
-USART_Handler_t usart1Handler = {0};
-uint8_t rxData = '\0';
-char bufferReception[64] = {0};
+GPIO_Handler_t handlerPinTx 	= {0};
+GPIO_Handler_t handlerPinRx 	= {0};
+USART_Handler_t usart1Handler 	= {0};
+uint8_t rxData 					= '\0';
+char bufferReception[64] 		= {0};
 uint16_t counterReception;
-bool stringComplete = false;
+bool stringComplete 			= false;
 
 char bufferData[64] = {0};
 
 // Timer Muestreo
 BasicTimer_Handler_t handlerSampleTimer4 = {0}; // Timer Muestreo
-uint16_t samples = 0;
-uint16_t contador = 0;
+uint16_t samples 	= 0;
+uint16_t contador 	= 0;
 
 // I2C  Acelerometro
-GPIO_Handler_t I2cSDA = {0};
-GPIO_Handler_t I2cSCL = {0};
+GPIO_Handler_t I2cSDA 		= {0};
+GPIO_Handler_t I2cSCL 		= {0};
 I2C_Handler_t Accelerometer = {0};
-uint8_t i2cBuffer = {0};
-uint8_t AccelX_low = 0;
-uint8_t AccelX_high = 0;
-int16_t AccelX = 0;
-uint8_t AccelY_low = 0;
-uint8_t AccelY_high = 0;
-int16_t AccelY = 0;
-uint8_t AccelZ_low = 0;
-uint8_t AccelZ_high = 0;
-int16_t AccelZ = 0;
-uint16_t measure[16] = {0};
-bool muestreo = false;
+uint8_t i2cBuffer 			= {0};
+uint8_t AccelX_low 			= 0;
+uint8_t AccelX_high 		= 0;
+int16_t AccelX 				= 0;
+uint8_t AccelY_low 			= 0;
+uint8_t AccelY_high 		= 0;
+int16_t AccelY 				= 0;
+uint8_t AccelZ_low 			= 0;
+uint8_t AccelZ_high 		= 0;
+int16_t AccelZ 				= 0;
+uint16_t measure[16] 		= {0};
+bool muestreo 				= false;
 
 /* PWM Handler para las señales por PWM */
 PWM_Handler_t handlerSignalPWM 			= {0};
 uint16_t duttyValue 					= 3;
 
 ///* ADC  */
-uint32_t datosADC[2][256]				= {0};
-uint16_t adcData[2] = {0};
+uint32_t datosADC[2][256]			= {0};
+uint16_t adcData[2] 				= {0};
 ADC_Config_t adcConfig 				= {0};
 uint16_t adcDataSingle;
-bool adcIsComplete = false;
-uint8_t counterADC =0;
-uint16_t numADC =0;
+bool adcIsComplete 					= false;
+uint8_t counterADC					= 0;
+uint16_t numADC 					= 0;
 
 
 float datosAcelerometroX[128];
@@ -93,14 +93,14 @@ float datosAcelerometroZ[128];
 
 float transformedSignalY[128];
 
-float32_t stopTime = 1.0;
-uint32_t ifftFlag = 0;
-uint32_t doBitReverse = 1;
+float32_t stopTime 				= 1.0;
+uint32_t ifftFlag 				= 0;
+uint32_t doBitReverse 			= 1;
 arm_rfft_fast_instance_f32 config_Rfft_fast_f32;
 arm_cfft_radix4_instance_f32 configRadix4_f32;
-arm_status status = ARM_MATH_ARGUMENT_ERROR;
+//arm_status status = ARM_MATH_ARGUMENT_ERROR;
 arm_status statusInitFFT =ARM_MATH_ARGUMENT_ERROR;
-uint16_t fttSize = 128;
+uint16_t fttSize 				= 128;
 
 
 // Cmd config
@@ -143,19 +143,19 @@ int main (void){
 
 	while(1){
 
-		// El caracter '@' nos indica que es el final de la cadena
+		// El caracter '/' nos indica que es el final de la cadena
 		if(rxData != '\0'){
 			bufferReception[counterReception] = rxData;
 			counterReception++;
 
 			// If the incoming character is a newline, set a flag
 			// so the main loop can do something about it
-			if(rxData == '\r'){
+			if(rxData == '/'){
 				stringComplete = true;
 
 				//Agrego esta linea para crear el string con el null al final
-				bufferReception[counterReception] = '\0';
-				counterReception = 0;
+				bufferReception[counterReception] 	= '\0';
+				counterReception 					= 0;
 			}
 			//Para que no vuelva entrar. Solo cambia debido a la interrupcion
 			rxData = '\0';
@@ -172,8 +172,8 @@ int main (void){
 
 
 void init_Hadware(void){
-	/* Blinky Pin */
 
+	/* Blinky Pin */
 	RCC->CR &= ~(RCC_CR_HSEON); // HSE oscillator is OFF
 
 	//Puerto H1
@@ -245,8 +245,8 @@ void init_Hadware(void){
 	Accelerometer.maxI2C_FM							 		=I2C_MAX_RISE_TIME_SM_100MHZ;
 	Accelerometer.modeI2C_FM						 		=I2C_MODE_FM_SPEED_400KHz_100MHz;
 	i2c_config(&Accelerometer);
-	i2c_writeSingleRegister(&Accelerometer, POWER_CTL , 0x2D); //Reset
-	i2c_writeSingleRegister(&Accelerometer, BW_RATE, 0xE); //Toma de datos 1600Hz
+	i2c_writeSingleRegister(&Accelerometer, POWER_CTL , 0x08); 	//Reset
+	i2c_writeSingleRegister(&Accelerometer, BW_RATE, 0xE); 		//Toma de datos 1600Hz
 
 	//Configurar TIM4 Sample
 	handlerSampleTimer4.ptrTIMx 							= TIM3;
@@ -379,7 +379,7 @@ void parseCommands(char *ptrBufferReception){
 	else if (strcmp(cmd, "MCOpres") == 0) {
 		if(firstParameter == 0 || firstParameter == 2 || firstParameter == 3 || firstParameter == 4 || firstParameter == 5){
 			selectMCOpresc(firstParameter);
-			sprintf(bufferData, "Prescaler configured: %u", firstParameter);
+			stopPwmSignal(&handlerSignalPWM);	sprintf(bufferData, "Prescaler configured: %u", firstParameter);
 			writeMsg(&usart1Handler, bufferData);
 		}
 		else{
@@ -392,12 +392,12 @@ void parseCommands(char *ptrBufferReception){
 		startPwmSignal(&handlerSignalPWM);
 
 		if(adcIsComplete){
-
+			stopPwmSignal(&handlerSignalPWM);
 			for (int i=0; i<256; i++){
 				sprintf(bufferData, "%u ; %u \n", (unsigned int )datosADC[0][i],(unsigned int )datosADC[1][i]);
 				writeMsg(&usart1Handler, bufferData);
 			}
-			stopPwmSignal(&handlerSignalPWM);
+
 		}
 	}
 	/* Cambiar Velocidad de muestreo */
@@ -469,26 +469,31 @@ void parseCommands(char *ptrBufferReception){
 	else if (strcmp(cmd, "getData") == 0) {
 		sprintf(bufferData, "Adquiriendo datos ... \n");
 		writeMsg(&usart1Handler, bufferData);
-		i2c_writeSingleRegister(&Accelerometer, POWER_CTL , 0x2D);
+		//i2c_writeSingleRegister(&Accelerometer, POWER_CTL , 0x08);
 		contador = 0;
+		muestreo = true;
 		while(contador < 128){
-			i2c_readMultipleRegister(&Accelerometer, ACCEL_XOUT_L, measure);
-			AccelX_low 	= measure[0];
-			AccelX_high = measure[1];
-			AccelY_low 	= measure[2];
-			AccelY_high = measure[3];
-			AccelZ_low 	= measure[4];
-			AccelZ_high = measure[5];
+			if(muestreo){
+				i2c_readMultipleRegister(&Accelerometer, ACCEL_XOUT_L, measure);
+				AccelX_low 	= measure[0];
+				AccelX_high = measure[1];
+				AccelY_low 	= measure[2];
+				AccelY_high = measure[3];
+				AccelZ_low 	= measure[4];
+				AccelZ_high = measure[5];
 
-			AccelX = AccelX_high << 8 | AccelX_low;
-			AccelY = AccelY_high << 8 | AccelY_low;
-			AccelZ = AccelZ_high << 8 | AccelZ_low;
+				AccelX = AccelX_high << 8 | AccelX_low;
+				AccelY = AccelY_high << 8 | AccelY_low;
+				AccelZ = AccelZ_high << 8 | AccelZ_low;
 
-			datosAcelerometroX[contador] 	= AccelX;
-			datosAcelerometroY[contador] 	= AccelY;
-			datosAcelerometroZ[contador]	= AccelZ;
+				datosAcelerometroX[contador] 	= AccelX;
+				datosAcelerometroY[contador] 	= AccelY;
+				datosAcelerometroZ[contador]	= AccelZ;
 
+				muestreo = false;
+			}
 		}
+
 		contador = 0;
 
 		//Inicialización FFT
@@ -522,6 +527,7 @@ void parseCommands(char *ptrBufferReception){
 			arm_rfft_fast_f32(&config_Rfft_fast_f32, datosAcelerometroY, transformedSignalY, ifftFlag);
 			arm_abs_f32(transformedSignalY, datosAcelerometroY, fttSize);
 
+			// Hallar el máximo e imprimir datos en el dominio de las frecuencias
 			uint32_t indexMax = 0;
 			float FTT_Max = datosAcelerometroY[1];
 			for(int i = 1; i < fttSize; i++){
@@ -539,13 +545,14 @@ void parseCommands(char *ptrBufferReception){
 //			sprintf(bufferData, "index %d ; result %f\n,", (int)indexMax, FTT_Max);
 //			writeMsg(&usart1Handler, bufferData);
 
-			float w = (indexMax * ((2 * PI)) / ((fttSize/2) * 0.005));
+			// Calcular la frecuencia
+			float w = (indexMax) / (fttSize * 0.005);
 			sprintf(bufferData, "frecuency w %f Hz \n,", w);
 			writeMsg(&usart1Handler, bufferData);
 
 		}
 		else{
-			writeMsg(&usart1Handler, "FFT not initialized...");
+			writeMsg(&usart1Handler, "FFT not initialized... \n");
 		}
 	}
 
@@ -566,6 +573,7 @@ void parseCommands(char *ptrBufferReception){
 		sprintf(bufferData, "Wrong CMD \n");
 		writeMsg(&usart1Handler, bufferData);
 		writeMsg(&usart1Handler, cmd);
+		writeMsg(&usart1Handler, "\n");
 
 	}
 
