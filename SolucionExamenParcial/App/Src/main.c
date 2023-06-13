@@ -287,8 +287,8 @@ void init_Hadware(void){
 	adcConfig.dataAlignment      								= ADC_ALIGNMENT_RIGHT;
 	adcConfig.resolution         								= ADC_RESOLUTION_12_BIT;
 	uint16_t samplingPeriods[2]  								= {0};
-	samplingPeriods[0]			 								= ADC_SAMPLING_PERIOD_56_CYCLES;
-	samplingPeriods[1]											= ADC_SAMPLING_PERIOD_56_CYCLES;
+	samplingPeriods[0]			 								= ADC_SAMPLING_PERIOD_28_CYCLES;
+	samplingPeriods[1]											= ADC_SAMPLING_PERIOD_28_CYCLES;
 	adcConfig.samplingPeriod     								= samplingPeriods;
 	adcConfig.externalTrigger    								= ADC_EXTERN_TIM_4_CHANNEL_4_RISING;
 	adcConfig.mode               								= MULTIPLE;
@@ -585,15 +585,15 @@ void parseCommands(char *ptrBufferReception){
 
 void selectMCOSignal(uint16_t param){
 	if(param==0){
-		// Seleccionamos la senal PLL
+		// Seleccionamos la senal PLL 11
 		RCC -> CFGR &= ~RCC_CFGR_MCO1;
 		RCC -> CFGR |= RCC_CFGR_MCO1_0;
 		RCC -> CFGR |= RCC_CFGR_MCO1_1;
 	} else if (param==1){
-		// Seleccionamos la senal HSI
+		// Seleccionamos la senal HSI 00
 		RCC -> CFGR &= ~RCC_CFGR_MCO1;
 	} else if(param==2){
-		// Seleccionamos la senal LSE
+		// Seleccionamos la senal LSE 01
 		RCC -> CFGR &= ~RCC_CFGR_MCO1;
 		RCC -> CFGR |= RCC_CFGR_MCO1_0;
 		RCC -> CFGR &= ~RCC_CFGR_MCO1_1;
@@ -603,7 +603,7 @@ void selectMCOSignal(uint16_t param){
 
 void selectMCOpresc(uint16_t prescaler){
 	if (prescaler ==0){
-		RCC -> CFGR &= ~RCC_CFGR_MCO1PRE;
+		RCC -> CFGR &= ~RCC_CFGR_MCO1PRE; //No division
 	}
 	if(prescaler ==2){
 		// Utilizamos un prescaler para poder ver la senal en el osciloscopio
