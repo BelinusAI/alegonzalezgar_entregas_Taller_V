@@ -78,7 +78,6 @@ PWM_Handler_t handlerSignalPWM 			= {0};
 uint16_t duttyValue 					= 3;
 
 ///* ADC  */
-uint32_t datosADC[2][256]			= {0};
 uint16_t adcData[2] 				= {0};
 ADC_Config_t adcConfig 				= {0};
 uint16_t adcDataSingle;
@@ -356,11 +355,11 @@ void parseCommands(char *ptrBufferReception){
 		writeMsg(&usart1Handler, "2)  MCOsignal [signal] 				-> Configurar signal 0:PLL 1:HSI 2:LSE\n");
 		writeMsg(&usart1Handler, "3)  MCOpres [prescaler] 				-> Configurar prescaler: 0,2,3,4,5 \n");
 		writeMsg(&usart1Handler, "4)  getDate 								-> Mostrar la hora y la fecha \n");
-		writeMsg(&usart1Handler, "5)  setDate [hora] [minuto] [segundo] 	-> Configurar la fecha \n");
-		writeMsg(&usart1Handler, "6)  setDate [año] [mes] [día] 			-> Configurar la fecha \n");
+		writeMsg(&usart1Handler, "5)  setDate [hora] [minuto] [segundo] 	-> Configurar la hora \n");
+		writeMsg(&usart1Handler, "6)  setTime [año] [mes] [día] 			-> Configurar la fecha \n");
 		writeMsg(&usart1Handler, "7)  setSummer 							-> Agregar una hora \n");
 		writeMsg(&usart1Handler, "8)  getADC 								-> Presentar los arreglos de datos ADC. \n");
-		writeMsg(&usart1Handler, "9)  setPerio [periodo us] 				-> Configurar la velocidad de muestreo de la señal ADC\n");
+		writeMsg(&usart1Handler, "9)  setPeriod [periodo us] 				-> Configurar la velocidad de muestreo de la señal ADC\n");
 		writeMsg(&usart1Handler, "10) getData 								-> Adquirir datos acelerometro \n");
 		writeMsg(&usart1Handler, "11) getFrequency 							-> Frecuencia de los datos CMSIS-FFT \n");
 		writeMsg(&usart1Handler, "12) adjust [scaler] 						-> Sintonizar scaler: 1 - 31 \n");

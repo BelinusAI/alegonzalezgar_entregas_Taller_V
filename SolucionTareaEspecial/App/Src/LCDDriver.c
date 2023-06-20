@@ -45,9 +45,10 @@ void LCD_writeData(I2C_Handler_t *ptrHandlerI2C, uint8_t dataToWrite){
 	/* 2. Enviamos la diracción del esclavo y la indicación de ESCRIBIR */
 	i2c_sendSlaveAddressRW(ptrHandlerI2C, ptrHandlerI2C->slaveAddress, I2C_WRITE_DATA);
 
-	/* 3. Enviamos la dirección de memoria que deseamos escribir*/
+	/* 3. Enviamos el valor que deseamos escribir en el registro seleccioando */
 	i2c_sendDataByte(ptrHandlerI2C, dataToWrite);
 
+	/* 4. Generamos la condicion de Stop, para que el slave se detenga despues de 1 byte*/
 	i2c_stopTransaction(ptrHandlerI2C);
 }
 
