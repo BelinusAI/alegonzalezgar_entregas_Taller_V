@@ -4,6 +4,7 @@
 #include "AdcDriver.h"
 #include "PwmDriver.h"
 #include "stdbool.h"
+#include "stdlib.h"
 
 #include "stm32f4xx.h"
 #include "SH1106.h"
@@ -15,6 +16,10 @@
 #define PADDLE_PADDING 		10
 #define BALL_SIZE 			3
 #define SCORE_PADDING 		10
+
+#define EFFECT_SPEED 		0.2
+#define MIN_Y_SPEED 		0.6
+#define MAX_Y_SPEED 		2
 
 /*Definición de elementos*/
 //Led de estado
@@ -41,22 +46,24 @@ BasicTimer_Handler_t handlerBlinkyTimer2	= {0};
 //uint16_t contador 	= 0;
 
 // I2C  OLED
-GPIO_Handler_t I2cSDA 		= {0};
-GPIO_Handler_t I2cSCL 		= {0};
-I2C_Handler_t handler_OLED	= {0};
-uint8_t i2cBuffer 			= {0};
+GPIO_Handler_t I2cSDA 						= {0};
+GPIO_Handler_t I2cSCL 						= {0};
+I2C_Handler_t handler_OLED					= {0};
+uint8_t i2cBuffer 							= {0};
+
+// Elementos para PWM Zumbador
+GPIO_Handler_t handlerPinPwmChannel3PC8		= {0};
+PWM_Handler_t handlerSignalPWMPC8			= {0};
 
 
 /* PWM Handler para las señales por PWM */
-PWM_Handler_t handlerSignalPWM 			= {0};
-uint16_t duttyValue 					= 3;
+PWM_Handler_t handlerSignalPWM 				= {0};
+
 
 ///* ADC  */
-uint16_t adcData[2] 				= {0};
-ADC_Config_t adcConfig 				= {0};
-uint8_t counterADC					= 0;
-uint16_t numADC 					= 0;
-bool adcIsComplete 					= false;
+ADC_Config_t adcConfig 						= {0};
+uint16_t adcData[2] 						= {0};
+uint8_t counterADC							= 0;
 uint16_t adcDataSingle;
 
 
@@ -68,25 +75,27 @@ uint16_t adcDataSingle;
 //char userMsg[64] = {0};
 
 /* PONG */
-int paddleLocationA = 30;
-int paddleLocationB = 20;
-
-float ballX = SCREEN_WIDTH/2;
-float ballY = SCREEN_HEIGHT/2;
-
-int scoreA = 0;
-int scoreB = 0;
-
-int lastPaddleLocationA = 0;
-int lastPaddleLocationB = 0;
-
-float ballSpeedX = 2;
-float ballSpeedY = 1;
+int paddleLocationA			= 30;
+int paddleLocationB 		= 30;
+float ballX 				= SCREEN_WIDTH/2;
+float ballY 				= SCREEN_HEIGHT/2;
+int scoreA 					= 0;
+int scoreB 					= 0;
+int lastPaddleLocationA 	= 0;
+int lastPaddleLocationB 	= 0;
+float ballSpeedX 			= 2;
+float ballSpeedY 			= 1;
+int paddleSpeedA 			= 0;
+int paddleSpeedB 			= 0;
 
 //Prototipos de funciones
 void init_Hadware(void);
 void draw(void);
 void ball(void);
+void soundBounce(void);
+void soundPoint(void);
+void soundStart(void);
+void addEffect(int paddleSpeed);
 //void parseCommands(char *ptrBufferReception);
 
 
@@ -100,13 +109,11 @@ int main (void){
 
 	/* Inicio de sistema */
 	init_Hadware();
-
 	OLED_Init(&handler_OLED);
-
-	UpdateDisplay(&handler_OLED);
-
+	startMenu(&handler_OLED);
+	delay_ms(1000);
+	soundStart();
 	draw();
-
 	UpdateDisplay(&handler_OLED);
 
 
@@ -126,9 +133,20 @@ int main (void){
 	while(1){
 
 		ball();
-
 		draw();
 		UpdateDisplay(&handler_OLED);
+
+		 if (scoreA >= 6){ //gana jugador A al anotar 6 puntos
+			 delay_ms(3000);
+			 startMenu(&handler_OLED);
+			 return 0; //TODO
+		 }
+
+		 if (scoreB >= 6){ //gana jugador B al anotar 6 puntos
+			 delay_ms(3000);
+			 startMenu(&handler_OLED);
+			 return 0; //TODO
+		 }
 //		// El caracter '/' nos indica que es el final de la cadena
 //		if(rxData != '\0'){
 //			bufferReception[counterReception] = rxData;
@@ -230,31 +248,13 @@ void init_Hadware(void){
 	handler_OLED.modeI2C_FM						 			= I2C_MODE_FM_SPEED_400KHz_16MHz;
 	i2c_config(&handler_OLED);
 
-//	//Configurar TIM4 Sample
-//	handlerSampleTimer4.ptrTIMx 							= TIM3;
-//	handlerSampleTimer4.TIMx_Config.TIMx_mode 				= BTIMER_MODE_UP;
-//	handlerSampleTimer4.TIMx_Config.TIMx_speed 				= BTIMER_100MHZ_SPEED_100us;
-//	handlerSampleTimer4.TIMx_Config.TIMx_period 			= 50; //Interrupción cada 5 ms 200 Hz
-//	handlerSampleTimer4.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUP_ENABLE;
-//	BasicTimer_Config(&handlerSampleTimer4);
-
-//	/* Configurar RTC */
-//	//handler_RTC
-//	handler_RTC.config.hour 			= 00;
-//	handler_RTC.config.minutes	 		= 00;
-//	handler_RTC.config.seconds 			= 00;
-//	handler_RTC.config.date 			= 00;
-//	handler_RTC.config.month 			= 00;
-//	handler_RTC.config.year				= 00;
-//	config_RTC(&handler_RTC);
-
 	/* Configurar ADC */
 	// Timer señal PWM
-	handlerSignalPWM.ptrTIMx 									= TIM3;
-	handlerSignalPWM.config.channel								= PWM_CHANNEL_1;
-	handlerSignalPWM.config.duttyCicle							= 5;
-	handlerSignalPWM.config.periodo								= 10000;
-	handlerSignalPWM.config.prescaler							= 16;
+	handlerSignalPWM.ptrTIMx 								= TIM3;
+	handlerSignalPWM.config.channel							= PWM_CHANNEL_1;
+	handlerSignalPWM.config.duttyCicle						= 5;
+	handlerSignalPWM.config.periodo							= 10000;
+	handlerSignalPWM.config.prescaler						= 16;
 	// Cargamos la configuración
 	pwm_Config(&handlerSignalPWM);
 	// Activamos la señal
@@ -263,22 +263,45 @@ void init_Hadware(void){
 
 
 	// Cargando la configuracion para la conversion ADC
-	adcConfig.canal[0]					= ADC_CHANNEL_0;
-	adcConfig.canal[1]					= ADC_CHANNEL_1;
-	adcConfig.resolution 				= ADC_RESOLUTION_12_BIT;
-	adcConfig.samplingPeriod[0] 		= ADC_SAMPLING_PERIOD_28_CYCLES;
-	adcConfig.samplingPeriod[1] 		= ADC_SAMPLING_PERIOD_28_CYCLES
-	adcConfig.dataAlignment      		= ADC_ALIGNMENT_RIGHT;
-	adcConfig.quantity    				= 2;
+	adcConfig.canal[0]										= ADC_CHANNEL_0;
+	adcConfig.canal[1]										= ADC_CHANNEL_1;
+	adcConfig.resolution 									= ADC_RESOLUTION_12_BIT;
+	adcConfig.samplingPeriod[0] 							= ADC_SAMPLING_PERIOD_28_CYCLES;
+	adcConfig.samplingPeriod[1] 							= ADC_SAMPLING_PERIOD_28_CYCLES
+	adcConfig.dataAlignment      							= ADC_ALIGNMENT_RIGHT;
+	adcConfig.quantity    									= 2;
 	adc_Config(&adcConfig);
+
+
+	/* Configuración PWM Zumbador */
+	// PWM
+	handlerPinPwmChannel3PC8.pGPIOx							= GPIOB;
+	handlerPinPwmChannel3PC8.GPIO_PinConfig.GPIO_PinNumber	= PIN_6;
+	handlerPinPwmChannel3PC8.GPIO_PinConfig.GPIO_PinMode	= GPIO_MODE_ALTFN;
+	handlerPinPwmChannel3PC8.GPIO_PinConfig.PinOPType		= GPIO_OTYPE_PUSHPULL;
+	handlerPinPwmChannel3PC8.GPIO_PinConfig.PinPuPdControl	= GPIO_PUPDR_NOTHING;
+	handlerPinPwmChannel3PC8.GPIO_PinConfig.GPIO_PinSpeed	= GPIO_OSPEEDR_FAST;
+	handlerPinPwmChannel3PC8.GPIO_PinConfig.PinAltFunMode	= AF2;
+	GPIO_Config(&handlerPinPwmChannel3PC8);
+
+	// Timer señal PWM Timer3 Channel 3
+	handlerSignalPWMPC8.ptrTIMx 							= 	TIM4;
+	handlerSignalPWMPC8.config.channel						=	PWM_CHANNEL_1;
+	handlerSignalPWMPC8.config.duttyCicle					= 	50;
+	handlerSignalPWMPC8.config.periodo						= 	100;
+	handlerSignalPWMPC8.config.prescaler					= 	16;
+	// Cargamos la configuración
+	pwm_Config(&handlerSignalPWMPC8);
+	// Activamos la señal
+	enableOutput(&handlerSignalPWMPC8);
+
+
 
 }
 
 void BasicTimer2_Callback(void){
 	//Pin de estado
 	GPIOxTooglePin(&handlerUserBlinkyPin);
-	//Draw();
-
 }
 
 //void usart1Rx_Callback(void){
@@ -303,7 +326,6 @@ void adcComplete_Callback(void){
 			paddleLocationB--;
 		}
 		counterADC = 0;
-
 	}
 	else{
 		if(adcData[0] > 4000 && paddleLocationA < 52){
@@ -313,7 +335,6 @@ void adcComplete_Callback(void){
 			paddleLocationA--;
 		}
 		counterADC = 1;
-
 	}
 
 }
@@ -588,28 +609,34 @@ void ball(void){
 	 ballX += ballSpeedX;
 	 ballY += ballSpeedY;
 
+	paddleSpeedA = paddleLocationA - lastPaddleLocationA;
+	paddleSpeedB = paddleLocationB - lastPaddleLocationB;
+
+	lastPaddleLocationA = paddleLocationA;
+	lastPaddleLocationB = paddleLocationB;
+
 	 //rebote superior e inferior
    if (ballY >= SCREEN_HEIGHT - BALL_SIZE || ballY <= 0) {
 	 ballSpeedY *= -1;
-	 //soundBounce();
+	 soundBounce();
    }
 
    //rebote paleta A
    if (ballX >= PADDLE_PADDING && ballX <= PADDLE_PADDING+BALL_SIZE && ballSpeedX < 0) {
 	   if (ballY > paddleLocationA - BALL_SIZE && ballY < paddleLocationA + PADDLE_HEIGHT) {
-		   //soundBounce();
+		   soundBounce();
 		   ballSpeedX *= -1;
-		   //addEffect(paddleSpeedA);
+		   addEffect(paddleSpeedA);
 	   }
    }
 
    //rebote paleta B
    if (ballX >= SCREEN_WIDTH-PADDLE_WIDTH-PADDLE_PADDING-BALL_SIZE && ballX <= SCREEN_WIDTH-PADDLE_PADDING-BALL_SIZE && ballSpeedX > 0) {
        if (ballY > paddleLocationB - BALL_SIZE && ballY < paddleLocationB + PADDLE_HEIGHT) {
-         //soundBounce();
+         soundBounce();
          ballSpeedX *= -1;
 
-         //addEffect(paddleSpeedB);
+         addEffect(paddleSpeedB);
        }
    }
 
@@ -617,12 +644,80 @@ void ball(void){
    if (ballX >= SCREEN_WIDTH - BALL_SIZE || ballX <= 0) {
 	   	  if (ballSpeedX > 0) {
 	   		  scoreA++;
+	   		  soundPoint();
 	   		  ballX = SCREEN_WIDTH / 4;
 	   	  }
 	   	  if (ballSpeedX < 0) {
-	   		  	  scoreB++;
-	   		  	  ballX = SCREEN_WIDTH / 4 * 3;
+	   		  scoreB++;
+	   		  soundPoint();
+	   		  ballX = SCREEN_WIDTH / 4 * 3;
 	   	  }
+
+
    }
+}
+
+//efecto de la pelota
+void addEffect(int paddleSpeed){
+	float oldBallSpeedY = ballSpeedY;
+
+	//añadir efecto a la bola cuando paleta se mueve mientras rebota .
+	//para cada píxel de movimiento de la paleta , añadir o quitar velocidad en EFFECT_SPEED
+	for (int effect = 0; effect < abs(paddleSpeed); effect++) {
+		if (paddleSpeed > 0) {
+			ballSpeedY += EFFECT_SPEED;
+		} else {
+			ballSpeedY -= EFFECT_SPEED;
+		}
+	}
+
+	//limite de velocidad minima
+	if (ballSpeedY < MIN_Y_SPEED && ballSpeedY > -MIN_Y_SPEED) {
+		if (ballSpeedY > 0) ballSpeedY = MIN_Y_SPEED;
+		if (ballSpeedY < 0) ballSpeedY = -MIN_Y_SPEED;
+		if (ballSpeedY == 0) ballSpeedY = oldBallSpeedY;
+	}
+
+	//limite de velocidad maxima
+	if (ballSpeedY > MAX_Y_SPEED) ballSpeedY = MAX_Y_SPEED;
+	if (ballSpeedY < -MAX_Y_SPEED) ballSpeedY = -MAX_Y_SPEED;
+}
+
+//sonido rebote
+void soundBounce(void) {
+	handlerSignalPWMPC8.config.periodo = 100;
+	setFrequency(&handlerSignalPWMPC8);
+	startPwmSignal(&handlerSignalPWMPC8);
+	delay_ms(2);
+	stopPwmSignal(&handlerSignalPWMPC8);
+
+}
+
+void soundPoint(void){
+	handlerSignalPWMPC8.config.periodo = 500;
+	setFrequency(&handlerSignalPWMPC8);
+	startPwmSignal(&handlerSignalPWMPC8);
+	delay_ms(100);
+	stopPwmSignal(&handlerSignalPWMPC8);
+}
+
+void soundStart(void) {
+	handlerSignalPWMPC8.config.periodo = 800;
+	setFrequency(&handlerSignalPWMPC8);
+	startPwmSignal(&handlerSignalPWMPC8);
+	delay_ms(100);
+	stopPwmSignal(&handlerSignalPWMPC8);
+	handlerSignalPWMPC8.config.periodo = 400;
+	setFrequency(&handlerSignalPWMPC8);
+	startPwmSignal(&handlerSignalPWMPC8);
+	delay_ms(100);
+	stopPwmSignal(&handlerSignalPWMPC8);
+	handlerSignalPWMPC8.config.periodo = 200;
+	setFrequency(&handlerSignalPWMPC8);
+	startPwmSignal(&handlerSignalPWMPC8);
+	delay_ms(100);
+	stopPwmSignal(&handlerSignalPWMPC8);
+	delay_ms(100);
+
 }
 

@@ -69,4 +69,6 @@ void DrawCircleFilled(int8_t x, int8_t y, int8_t radius, uint8_t color);
 void DrawChar(char letter, uint8_t x,  uint8_t y, uint8_t color);
 void DrawBitmap(uint8_t* bitmap, uint8_t x, uint8_t y, uint8_t x_len_bits, uint8_t y_len_bits, uint8_t color);
 
+void startMenu(I2C_Handler_t *ptrHandlerI2C);
+
 #endif /* INC_SH1106_H_ */
