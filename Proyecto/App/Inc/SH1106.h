@@ -55,6 +55,8 @@
 
 void OLED_Init(I2C_Handler_t *ptrHandlerI2C);
 void SetDisplayOnOff(I2C_Handler_t *ptrHandlerI2C, uint8_t on);
+void SetDisplayNormal(I2C_Handler_t *ptrHandlerI2C);
+void SetDisplayInverted(I2C_Handler_t *ptrHandlerI2C);
 
 void UpdateDisplay(I2C_Handler_t *ptrHandlerI2C);
 void ClearScreen(void);
@@ -67,8 +69,10 @@ void DrawBoxFilled(uint8_t x_start, uint8_t y_start, uint8_t x_end, uint8_t y_en
 void DrawCircleEmpty(int8_t x, int8_t y, int8_t radius, uint8_t color);
 void DrawCircleFilled(int8_t x, int8_t y, int8_t radius, uint8_t color);
 void DrawChar(char letter, uint8_t x,  uint8_t y, uint8_t color);
+void DrawString(char *string, uint8_t x,  uint8_t y, uint8_t color);
 void DrawBitmap(uint8_t* bitmap, uint8_t x, uint8_t y, uint8_t x_len_bits, uint8_t y_len_bits, uint8_t color);
 
-void startMenu(I2C_Handler_t *ptrHandlerI2C);
+void startMenu(void);
+void startScreen(void);
 
 #endif /* INC_SH1106_H_ */
