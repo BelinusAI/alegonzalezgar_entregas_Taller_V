@@ -36,6 +36,9 @@ BasicTimer_Handler_t handlerBlinkyTimer2	= {0};
 GPIO_Handler_t handlerUserButtom  			= {0};
 EXTI_Config_t handlerUserButtomExti 		= {0};
 
+GPIO_Handler_t handlerUserButtom2  			= {0};
+EXTI_Config_t handlerUserButtomExti2 		= {0};
+
 // I2C  OLED
 GPIO_Handler_t I2cSDA 						= {0};
 GPIO_Handler_t I2cSCL 						= {0};
@@ -69,7 +72,6 @@ float ballSpeedY 			= 1;
 int paddleSpeedA 			= 0;
 int paddleSpeedB 			= 0;
 int selection 				= 34;
-int speedCounter			= 1;
 bool pause 					= false;
 bool enterMenu				= true;
 bool multiplayer 			= true;
@@ -127,7 +129,6 @@ int main (void){
 				draw();
 				UpdateDisplay(&handler_OLED);
 				counterADC = 1;
-				speedCounter = 1;
 			}
 		}
 
@@ -136,15 +137,6 @@ int main (void){
 		draw();
 		UpdateDisplay(&handler_OLED);
 
-//		// Aumento de velocidad
-//		if(speedCounter % 100 == 0){
-//			if(ballSpeedX > 0){
-//				ballSpeedX+=0.1;
-//			}
-//			else{
-//				ballSpeedX-=0.1;
-//			}
-//		}
 
 		/* Condición de victoria */
 		 if (scoreA >= 6){ //gana jugador A al anotar 6 puntos
@@ -203,7 +195,7 @@ void init_Hadware(void){
 	handlerBlinkyTimer2.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUP_ENABLE;
 	BasicTimer_Config(&handlerBlinkyTimer2);
 
-	//Puerto PC13 UserButtom
+	//Puerto PC8 UserButtom
 	handlerUserButtom.pGPIOx 								= GPIOC;
 	handlerUserButtom.GPIO_PinConfig.GPIO_PinNumber			= PIN_8;
 	handlerUserButtom.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_IN;
@@ -212,6 +204,18 @@ void init_Hadware(void){
 
 	//EXTI
 	handlerUserButtomExti.pGPIOHandler 						= &handlerUserButtom;
+	handlerUserButtomExti.edgeType 							= EXTERNAL_INTERRUPT_RISING_EDGE;
+	extInt_Config(&handlerUserButtomExti);
+
+	//Puerto PA10 UserButtom
+	handlerUserButtom2.pGPIOx 								= GPIOA;
+	handlerUserButtom2.GPIO_PinConfig.GPIO_PinNumber		= PIN_10;
+	handlerUserButtom2.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_IN;
+	handlerUserButtom2.GPIO_PinConfig.PinPuPdControl		= GPIO_PUPDR_PULLUP;
+	GPIO_Config(&handlerUserButtom2);
+
+	//EXTI
+	handlerUserButtomExti.pGPIOHandler 						= &handlerUserButtom2;
 	handlerUserButtomExti.edgeType 							= EXTERNAL_INTERRUPT_RISING_EDGE;
 	extInt_Config(&handlerUserButtomExti);
 
@@ -293,9 +297,22 @@ void init_Hadware(void){
 void BasicTimer2_Callback(void){
 	//Pin de estado
 	GPIOxTooglePin(&handlerUserBlinkyPin);
-	speedCounter++;
 }
 
+// Play and Pause
+void callback_extInt10(void){
+	if(enterMenu && selection == TWOPLAYER){
+		enterMenu = false;
+	}
+	else if(enterMenu && selection == ONEPLAYER){
+		enterMenu = false;
+		multiplayer = false;
+	}
+	else{
+		pause = !pause;
+	}
+}
+// Play and Pause
 void callback_extInt8(void){
 	if(enterMenu && selection == TWOPLAYER){
 		enterMenu = false;
@@ -310,17 +327,18 @@ void callback_extInt8(void){
 
 }
 
+//Lectura del Joystyck
 void adcComplete_Callback(void){
 	adcDataSingle = getADC();
 	adcData[counterADC]= adcDataSingle;
 
 	if(!enterMenu){
 		if(counterADC){ // Player2
-			if(multiplayer){
-				if(adcData[counterADC] > 4000 && paddleLocationB < 52){
+			if(multiplayer){ //Player1 Manual
+				if(adcData[counterADC] < 100 && paddleLocationB < 52){
 					paddleLocationB++;
 				}
-				else if(adcData[counterADC] < 100 && paddleLocationB > 0){
+				else if(adcData[counterADC] > 4000 && paddleLocationB > 0){
 					paddleLocationB--;
 				}
 			}
@@ -358,6 +376,7 @@ void adcComplete_Callback(void){
 	}
 }
 
+// Dibujas escenario
 void draw(void){
 	ClearScreen();
 
@@ -378,6 +397,7 @@ void draw(void){
   DrawChar(scoreB + '0', SCREEN_WIDTH/2 + SCORE_PADDING, SCORE_PADDING, 1);
 }
 
+// Movimiento de la bola
 void ball(void){
 	 ballX += ballSpeedX;
 	 ballY += ballSpeedY;
@@ -420,7 +440,6 @@ void ball(void){
 		  soundPoint();
 		  ballX = SCREEN_WIDTH / 4;
 		  ballSpeedX = 2;
-		  speedCounter = 1;
 
 	  }
 	  if (ballSpeedX < 0) {
@@ -428,7 +447,6 @@ void ball(void){
 		  soundPoint();
 		  ballX = SCREEN_WIDTH / 4 * 3;
 		  ballSpeedX = -2;
-		  speedCounter = 1;
 	  }
    }
 }
@@ -496,6 +514,7 @@ void soundStart(void) {
 	delay_ms(100);
 }
 
+// Presentar Menú
 void showMenu(void){
 	startMenu();
 	//dibujar paleta A
