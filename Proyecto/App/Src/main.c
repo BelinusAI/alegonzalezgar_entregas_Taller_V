@@ -36,6 +36,9 @@ BasicTimer_Handler_t handlerBlinkyTimer2	= {0};
 GPIO_Handler_t handlerUserButtom  			= {0};
 EXTI_Config_t handlerUserButtomExti 		= {0};
 
+GPIO_Handler_t handlerUserButtom1  			= {0};
+EXTI_Config_t handlerUserButtomExti1 		= {0};
+
 GPIO_Handler_t handlerUserButtom2  			= {0};
 EXTI_Config_t handlerUserButtomExti2 		= {0};
 
@@ -195,6 +198,19 @@ void init_Hadware(void){
 	handlerBlinkyTimer2.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUP_ENABLE;
 	BasicTimer_Config(&handlerBlinkyTimer2);
 
+	//Puerto PC13 UserButtom
+	handlerUserButtom1.pGPIOx 								= GPIOC;
+	handlerUserButtom1.GPIO_PinConfig.GPIO_PinNumber		= PIN_13;
+	handlerUserButtom1.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_IN;
+	handlerUserButtom1.GPIO_PinConfig.PinPuPdControl		= GPIO_PUPDR_PULLUP;
+	GPIO_Config(&handlerUserButtom1);
+
+	//EXTI
+	handlerUserButtomExti.pGPIOHandler 						= &handlerUserButtom1;
+	handlerUserButtomExti.edgeType 							= EXTERNAL_INTERRUPT_RISING_EDGE;
+	extInt_Config(&handlerUserButtomExti);
+
+
 	//Puerto PC8 UserButtom
 	handlerUserButtom.pGPIOx 								= GPIOC;
 	handlerUserButtom.GPIO_PinConfig.GPIO_PinNumber			= PIN_8;
@@ -299,7 +315,7 @@ void BasicTimer2_Callback(void){
 	GPIOxTooglePin(&handlerUserBlinkyPin);
 }
 
-// Play and Pause
+// Play
 void callback_extInt10(void){
 	if(enterMenu && selection == TWOPLAYER){
 		enterMenu = false;
@@ -308,11 +324,9 @@ void callback_extInt10(void){
 		enterMenu = false;
 		multiplayer = false;
 	}
-	else{
-		pause = !pause;
-	}
+
 }
-// Play and Pause
+// Play
 void callback_extInt8(void){
 	if(enterMenu && selection == TWOPLAYER){
 		enterMenu = false;
@@ -321,7 +335,10 @@ void callback_extInt8(void){
 		enterMenu = false;
 		multiplayer = false;
 	}
-	else{
+}
+// Pause
+void callback_extInt13(void){
+	if(!enterMenu){
 		pause = !pause;
 	}
 
